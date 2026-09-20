@@ -1,0 +1,6 @@
+{
+  "name": "Multi-Warehouse Inventory & Finance Manager",
+  "description": "Multi-warehouse inventory, sales, and financial management dashboard tailored for e-commerce sellers with Noon FBN integration, stock transfers, and financial ledgers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
