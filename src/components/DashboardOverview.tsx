@@ -1,38 +1,14 @@
+'use client';
+
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Product, Sale, InboundShipment } from '../types';
 import {
-  TrendingUp,
-  Boxes,
-  Building2,
-  Store,
-  Landmark,
-  HandCoins,
-  ArrowUpRight,
-  PackagePlus,
   ArrowRightLeft,
+  PackagePlus,
   ShoppingBag,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
 } from 'lucide-react';
 
-interface DashboardOverviewProps {
-  onOpenInbound: () => void;
-  onOpenTransfer: () => void;
-  onOpenSale: () => void;
-  onOpenNoonPayout: () => void;
-  onOpenSupplierPayment: () => void;
-}
-
-export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
-  onOpenInbound,
-  onOpenTransfer,
-  onOpenSale,
-  onOpenNoonPayout,
-  onOpenSupplierPayment,
-}) => {
+export const DashboardOverview: React.FC = () => {
   const {
     totalSalesRevenue,
     netProfit,
@@ -41,413 +17,237 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     noonReceivablesBalance,
     supplierPayablesBalance,
     formatCurrency,
-    lowStockProducts,
     sales,
     transfers,
-    inboundShipments,
     setCurrentTab,
     t,
     lang,
   } = useApp();
 
-  const totalStockAll = mainWarehouseStockCount + noonWarehouseStockCount;
-  const noonPercentage = totalStockAll > 0 ? Math.round((noonWarehouseStockCount / totalStockAll) * 100) : 0;
+  const totalStock = mainWarehouseStockCount + noonWarehouseStockCount;
+  const noonPercentage = totalStock > 0 ? Math.round((noonWarehouseStockCount / totalStock) * 100) : 0;
   const mainPercentage = 100 - noonPercentage;
+  const profitMargin = totalSalesRevenue > 0 ? ((netProfit / totalSalesRevenue) * 100).toFixed(1) : '0';
 
-  // Profit margin calculation
-  const profitMarginPercent = totalSalesRevenue > 0 ? ((netProfit / totalSalesRevenue) * 100).toFixed(1) : '0';
+  const metrics = [
+    {
+      label: t.kpiTotalSales,
+      value: formatCurrency(totalSalesRevenue),
+      subtext: `${sales.length} ${lang === 'ar' ? 'طلبية' : 'orders'}`,
+      textColor: 'text-zinc-100',
+    },
+    {
+      label: t.kpiNetProfit,
+      value: formatCurrency(netProfit),
+      subtext: `${profitMargin}% ${lang === 'ar' ? 'هامش الربح' : 'margin'}`,
+      textColor: netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400',
+    },
+    {
+      label: t.kpiNoonReceivables,
+      value: formatCurrency(noonReceivablesBalance),
+      subtext: lang === 'ar' ? 'مستحقات معلقة لدى نون' : 'Pending payout',
+      textColor: 'text-amber-400',
+    },
+    {
+      label: t.kpiSupplierPayables,
+      value: formatCurrency(supplierPayablesBalance),
+      subtext: lang === 'ar' ? 'مستحقات للموردين' : 'Outstanding dues',
+      textColor: 'text-rose-400',
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* 1. KPI Cards Grid - The 6 Core Required KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* KPI 1: Total Sales */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {t.kpiTotalSales}
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/20 flex items-center justify-center">
-              <ShoppingBag className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              {formatCurrency(totalSalesRevenue)}
-            </div>
-            <div className="mt-1 flex items-center gap-1 text-xs text-emerald-400 font-medium">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>{sales.length} {lang === 'ar' ? 'عملية بيع مكتملة' : 'completed orders'}</span>
-            </div>
-          </div>
+      {/* 1. Page Title & Quick Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-zinc-100 tracking-tight">{t.navDashboard}</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {lang === 'ar'
+              ? 'مؤشرات الأداء المالي والمخزون عبر المستودعات ونون FBN'
+              : 'Multi-warehouse stock parity and financial summary'}
+          </p>
         </div>
 
-        {/* KPI 2: Net Profit/Loss */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {t.kpiNetProfit}
-            </span>
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${netProfit >= 0 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/15 text-rose-400 border-rose-500/20'}`}>
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className={`text-2xl font-black font-mono tracking-tight ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {formatCurrency(netProfit)}
-            </div>
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/20 font-bold text-[10px]">
-                {profitMarginPercent}% {t.margin}
-              </span>
-              <span>{lang === 'ar' ? 'بعد خصم التكلفة وعمولات نون' : 'Net of COGS & fees'}</span>
-            </div>
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setCurrentTab('inbound')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors shadow-xs"
+          >
+            <PackagePlus className="w-3.5 h-3.5" />
+            <span>{t.navInbound}</span>
+          </button>
+          <button
+            onClick={() => setCurrentTab('warehouses')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white rounded-md transition-colors"
+          >
+            <ArrowRightLeft className="w-3.5 h-3.5 text-zinc-400" />
+            <span>{t.navWarehouses}</span>
+          </button>
+          <button
+            onClick={() => setCurrentTab('sales')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white rounded-md transition-colors"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 text-zinc-400" />
+            <span>{t.navSales}</span>
+          </button>
         </div>
+      </div>
 
-        {/* KPI 3: Main Warehouse Stock Count */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {t.kpiMainStock}
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center">
-              <Building2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-100 font-mono tracking-tight flex items-baseline gap-1.5">
-              {mainWarehouseStockCount}
-              <span className="text-sm font-semibold text-slate-400">{t.units}</span>
-            </div>
-            <div className="mt-1 text-xs text-slate-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-              <span>{lang === 'ar' ? 'المستودع الرئيسي (القاهرة)' : 'Cairo Central Hub'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* KPI 4: External Warehouse (Noon FBN) Stock Count */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {t.kpiNoonStock}
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/20 flex items-center justify-center">
-              <Store className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-100 font-mono tracking-tight flex items-baseline gap-1.5">
-              {noonWarehouseStockCount}
-              <span className="text-sm font-semibold text-slate-400">{t.units}</span>
-            </div>
-            <div className="mt-1 text-xs text-slate-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span>{lang === 'ar' ? 'مستودع نون FBN (السادس من أكتوبر)' : 'FBN 6th of October Prime Ready'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* KPI 5: Noon Receivables Balance (فلوسك عند نون) */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 shadow-sm group">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                {t.kpiNoonReceivables}
-              </span>
-              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-sm">
-                Noon FBN
+      {/* 2. Key Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {metrics.map((item, idx) => (
+          <div key={idx} className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+            <span className="text-xs font-medium text-zinc-400 block">{item.label}</span>
+            <div className="mt-2 flex items-baseline justify-between">
+              <span className={`text-xl font-bold tracking-tight font-mono ${item.textColor}`}>
+                {item.value}
               </span>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
-              <Landmark className="w-4 h-4" />
-            </div>
+            <span className="text-[11px] text-zinc-500 mt-1 block">{item.subtext}</span>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-amber-400 font-mono tracking-tight">
-              {formatCurrency(noonReceivablesBalance)}
-            </div>
-            <div className="mt-1 flex items-center justify-between text-xs">
-              <span className="text-slate-400">{t.kpiNoonReceivablesSub}</span>
-              <button
-                onClick={onOpenNoonPayout}
-                className="text-[11px] font-bold text-amber-400 hover:text-amber-300 underline flex items-center gap-0.5"
-              >
-                {lang === 'ar' ? 'تسجيل حوالة' : 'Disburse'}
-              </button>
-            </div>
+        ))}
+      </div>
+
+      {/* 3. Warehouse Stock Balance */}
+      <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-100">
+              {lang === 'ar' ? 'توزيع المخزون بين المستودعات' : 'Warehouse Stock Distribution'}
+            </h3>
+            <p className="text-xs text-zinc-400">
+              {totalStock} {t.units} {lang === 'ar' ? 'إجمالي القطع المتوفرة' : 'total items across all locations'}
+            </p>
           </div>
+          <button
+            onClick={() => setCurrentTab('warehouses')}
+            className="text-xs font-medium text-zinc-400 hover:text-zinc-200 underline"
+          >
+            {lang === 'ar' ? 'إدارة التحويلات' : 'Manage Transfers'}
+          </button>
         </div>
 
-        {/* KPI 6: Supplier Payables Balance (حسابات التجار) */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm hover:border-slate-700 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              {t.kpiSupplierPayables}
+        {/* Minimal Progress Bar */}
+        <div className="w-full bg-zinc-950 rounded-full h-2.5 flex overflow-hidden border border-zinc-800/80">
+          <div
+            className="bg-zinc-400 transition-all duration-300"
+            style={{ width: `${mainPercentage}%` }}
+            title={`Main: ${mainPercentage}%`}
+          />
+          <div
+            className="bg-amber-400 transition-all duration-300"
+            style={{ width: `${noonPercentage}%` }}
+            title={`Noon: ${noonPercentage}%`}
+          />
+        </div>
+
+        {/* Breakdown Items */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/60 border border-zinc-800">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />
+              <div>
+                <span className="text-xs font-medium text-zinc-200">
+                  {lang === 'ar' ? 'المستودع الرئيسي (القاهرة)' : 'Main Warehouse (Cairo)'}
+                </span>
+                <span className="text-[11px] text-zinc-500 block">{mainPercentage}%</span>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-zinc-100 font-mono">
+              {mainWarehouseStockCount} <span className="text-xs font-normal text-zinc-400">{t.units}</span>
             </span>
-            <div className="w-9 h-9 rounded-xl bg-teal-500/15 text-teal-400 border border-teal-500/20 flex items-center justify-center">
-              <HandCoins className="w-4 h-4" />
-            </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-100 font-mono tracking-tight">
-              {formatCurrency(supplierPayablesBalance)}
+
+          <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/60 border border-zinc-800">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+              <div>
+                <span className="text-xs font-medium text-zinc-200">
+                  {lang === 'ar' ? 'مستودع نون FBN (أكتوبر)' : 'Noon FBN Warehouse'}
+                </span>
+                <span className="text-[11px] text-zinc-500 block">{noonPercentage}%</span>
+              </div>
             </div>
-            <div className="mt-1 flex items-center justify-between text-xs">
-              <span className="text-slate-400">{t.kpiSupplierPayablesSub}</span>
-              <button
-                onClick={onOpenSupplierPayment}
-                className="text-[11px] font-bold text-teal-400 hover:text-teal-300 underline flex items-center gap-0.5"
-              >
-                {lang === 'ar' ? 'سداد دفعة' : 'Record Pay'}
-              </button>
-            </div>
+            <span className="text-sm font-bold text-zinc-100 font-mono">
+              {noonWarehouseStockCount} <span className="text-xs font-normal text-zinc-400">{t.units}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 2. Quick Action Toolbar & Warehouse Distribution Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Warehouse Inventory Ratio & Quick Actions */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Inventory Distribution Panel */}
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                  <Boxes className="w-4 h-4 text-slate-400" />
-                  {lang === 'ar' ? 'توزيع المخزون بين المستودعات' : 'Inventory Warehouse Allocation'}
-                </h3>
-                <p className="text-xs text-slate-400">
-                  {lang === 'ar'
-                    ? `إجمالي المخزون المتاح: ${totalStockAll} قطعة عبر كافة المواقع`
-                    : `Total across all facilities: ${totalStockAll} units`}
-                </p>
-              </div>
-
-              <button
-                onClick={onOpenTransfer}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/30 transition-colors"
-              >
-                <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t.transferStockBtn}</span>
-              </button>
-            </div>
-
-            {/* Split Progress Bar */}
-            <div className="space-y-1.5">
-              <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden flex p-0.5 border border-slate-700/60">
-                <div
-                  style={{ width: `${mainPercentage}%` }}
-                  className="h-full bg-blue-500 rounded-s-full transition-all duration-500"
-                  title={`Main Warehouse: ${mainPercentage}%`}
-                />
-                <div
-                  style={{ width: `${noonPercentage}%` }}
-                  className="h-full bg-amber-500 rounded-e-full transition-all duration-500"
-                  title={`Noon Warehouse: ${noonPercentage}%`}
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-blue-500"></span>
-                  <span className="text-slate-300">{t.mainWarehouse}:</span>
-                  <span className="text-slate-100 font-mono font-bold">{mainWarehouseStockCount} ({mainPercentage}%)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-amber-500"></span>
-                  <span className="text-slate-300">{t.noonWarehouse}:</span>
-                  <span className="text-slate-100 font-mono font-bold">{noonWarehouseStockCount} ({noonPercentage}%)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Action Buttons Grid */}
-            <div className="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2.5 border-t border-slate-800">
-              <button
-                onClick={onOpenInbound}
-                className="p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all text-start group"
-              >
-                <PackagePlus className="w-4 h-4 text-emerald-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold">{t.newInboundBtn}</div>
-                <div className="text-[10px] text-slate-400">{lang === 'ar' ? 'استلام بضاعة' : 'Incoming PO'}</div>
-              </button>
-
-              <button
-                onClick={onOpenTransfer}
-                className="p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-amber-300 border border-slate-700/80 hover:border-amber-500/40 transition-all text-start group"
-              >
-                <ArrowRightLeft className="w-4 h-4 text-amber-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold">{t.transferStockBtn}</div>
-                <div className="text-[10px] text-slate-400">{lang === 'ar' ? 'نقل إلى نون' : 'Move stock'}</div>
-              </button>
-
-              <button
-                onClick={onOpenSale}
-                className="p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-blue-300 border border-slate-700/80 hover:border-blue-500/40 transition-all text-start group"
-              >
-                <ShoppingBag className="w-4 h-4 text-blue-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold">{t.newSaleBtn}</div>
-                <div className="text-[10px] text-slate-400">{lang === 'ar' ? 'تسجيل بيع' : 'Record sale'}</div>
-              </button>
-
-              <button
-                onClick={onOpenNoonPayout}
-                className="p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-amber-300 border border-slate-700/80 hover:border-amber-500/40 transition-all text-start group"
-              >
-                <Landmark className="w-4 h-4 text-amber-400 mb-1.5 group-hover:scale-110 transition-transform" />
-                <div className="text-xs font-bold">{t.recordNoonPayoutBtn}</div>
-                <div className="text-[10px] text-slate-400">{lang === 'ar' ? 'سحب رصيد نون' : 'Noon payout'}</div>
-              </button>
-            </div>
+      {/* 4. Recent Activity Lists */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Recent Sales */}
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-zinc-100">
+              {lang === 'ar' ? 'أحدث المبيعات' : 'Recent Sales'}
+            </h3>
+            <button
+              onClick={() => setCurrentTab('sales')}
+              className="text-xs text-zinc-400 hover:text-zinc-200"
+            >
+              {t.viewAll}
+            </button>
           </div>
 
-          {/* Recent Sales Activity Stream */}
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" />
-                {lang === 'ar' ? 'أحدث المبيعات وحركات الصرف' : 'Recent Sales & Stock Movements'}
-              </h3>
-              <button
-                onClick={() => setCurrentTab('sales')}
-                className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1"
-              >
-                <span>{t.viewAll}</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="divide-y divide-slate-800">
-              {sales.slice(0, 4).map((sale: Sale) => (
-                <div key={sale.id} className="py-3 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border ${sale.sourceWarehouse === 'noon' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-blue-500/15 text-blue-300 border-blue-500/30'}`}>
-                      {sale.sourceWarehouse === 'noon' ? 'FBN' : 'DIR'}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-200 truncate">
-                        {sale.productName}
-                      </div>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-2">
-                        <span>{sale.orderNumber}</span>
-                        <span>•</span>
-                        <span>{sale.quantity} {t.units}</span>
-                        <span>•</span>
-                        <span>{sale.saleDate}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-end shrink-0">
-                    <div className="text-xs font-bold font-mono text-slate-100">
-                      {formatCurrency(sale.totalRevenue)}
-                    </div>
-                    <div className="text-[11px] font-semibold text-emerald-400">
-                      +{formatCurrency(sale.grossProfit)} {lang === 'ar' ? 'ربح' : 'profit'}
-                    </div>
+          <div className="divide-y divide-zinc-800/80">
+            {sales.slice(0, 5).map(sale => (
+              <div key={sale.id} className="py-2.5 flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-medium text-zinc-200">
+                    {sale.productName}
+                  </span>
+                  <div className="text-[11px] text-zinc-500">
+                    {sale.orderNumber} • {sale.channel}
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="text-end">
+                  <span className="font-medium text-zinc-200 font-mono">
+                    {formatCurrency(sale.totalRevenue)}
+                  </span>
+                  <div className="text-[11px] text-emerald-400 font-mono">
+                    +{formatCurrency(sale.grossProfit)}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Right 1 Col: Low Stock Alerts & Operational Summary */}
-        <div className="space-y-6">
-          {/* Low Stock Alerts */}
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                {t.lowStockWarning}
-              </h3>
-              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                {lowStockProducts.length}
-              </span>
-            </div>
-
-            {lowStockProducts.length === 0 ? (
-              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center text-xs text-emerald-300 font-medium flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>{lang === 'ar' ? 'كافة المنتجات بمستوى مخزون صحي ومستقر!' : 'All stock levels are optimal.'}</span>
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {lowStockProducts.map((prod: Product) => (
-                  <div
-                    key={prod.id}
-                    className="p-3 rounded-xl border border-slate-800 bg-slate-800/40 hover:bg-slate-800/70 transition-colors space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-200 truncate">
-                          {lang === 'ar' ? prod.nameAr : prod.name}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">{prod.sku}</div>
-                      </div>
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded">
-                        {lang === 'ar' ? 'تنبيه' : 'Low'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className={`p-1.5 rounded-lg border text-center ${prod.stockMain <= prod.minStockAlert ? 'bg-rose-500/15 border-rose-500/30 text-rose-300 font-bold' : 'bg-slate-900 border-slate-800 text-slate-300'}`}>
-                        <div className="text-[10px] text-slate-400">{lang === 'ar' ? 'الرئيسي' : 'Main'}</div>
-                        <div>{prod.stockMain} {t.units}</div>
-                      </div>
-
-                      <div className={`p-1.5 rounded-lg border text-center ${prod.stockNoon <= prod.minStockAlert ? 'bg-rose-500/15 border-rose-500/30 text-rose-300 font-bold' : 'bg-slate-900 border-slate-800 text-slate-300'}`}>
-                        <div className="text-[10px] text-slate-400">Noon FBN</div>
-                        <div>{prod.stockNoon} {t.units}</div>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={onOpenTransfer}
-                      className="w-full py-1 text-center text-xs font-bold text-amber-300 hover:text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 rounded-lg transition-colors"
-                    >
-                      {lang === 'ar' ? 'تحويل كمية إلى نون الآن' : 'Transfer to Noon'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* Recent Transfers */}
+        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-zinc-100">
+              {lang === 'ar' ? 'أحدث التحويلات' : 'Recent Transfers'}
+            </h3>
+            <button
+              onClick={() => setCurrentTab('warehouses')}
+              className="text-xs text-zinc-400 hover:text-zinc-200"
+            >
+              {t.viewAll}
+            </button>
           </div>
 
-          {/* Recent Inbound Shipments Card */}
-          <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                <PackagePlus className="w-4 h-4 text-emerald-400" />
-                {lang === 'ar' ? 'آخر التوريدات الواردة' : 'Latest Inbounds'}
-              </h3>
-              <button
-                onClick={() => setCurrentTab('inbound')}
-                className="text-xs font-bold text-emerald-400 hover:text-emerald-300"
-              >
-                {t.viewAll}
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {inboundShipments.slice(0, 3).map((inb: InboundShipment) => (
-                <div key={inb.id} className="p-2.5 rounded-xl border border-slate-800 bg-slate-800/40 text-xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <div className="font-bold text-slate-200 truncate">{inb.productName}</div>
-                    <div className="text-[10px] text-slate-400">{inb.supplierName} • {inb.quantity} {t.units}</div>
-                  </div>
-                  <div className="text-end shrink-0">
-                    <div className="font-mono font-bold text-slate-100">{formatCurrency(inb.totalCost)}</div>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${inb.paymentStatus === 'Paid' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/15 text-amber-300 border-amber-500/30'}`}>
-                      {inb.paymentStatus}
-                    </span>
+          <div className="divide-y divide-zinc-800/80">
+            {transfers.slice(0, 5).map(item => (
+              <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-medium text-zinc-200">{item.productName}</span>
+                  <div className="text-[11px] text-zinc-500">
+                    {item.sourceWarehouse === 'main' ? 'Main' : 'Noon'} → {item.targetWarehouse === 'noon' ? 'Noon' : 'Main'}
+                    {item.fbnAsnNumber && ` • ASN: ${item.fbnAsnNumber}`}
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="text-end">
+                  <span className="font-medium text-zinc-200 font-mono">
+                    {item.quantity} {t.units}
+                  </span>
+                  <div className="text-[11px] text-zinc-500">{item.transferDate}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

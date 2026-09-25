@@ -7,8 +7,8 @@
 }
 
 body {
-  background-color: #020617;
-  color: #f8fafc;
+  background-color: #09090b;
+  color: #f4f4f5;
 }
 
 [dir="rtl"] {
@@ -21,12 +21,12 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: #18181b;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #3f3f46;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #52525b;
 }

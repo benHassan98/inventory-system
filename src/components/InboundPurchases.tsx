@@ -1,23 +1,11 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { WarehouseId } from '../types';
-import {
-  PackagePlus,
-  Search,
-  Filter,
-  DollarSign,
-  Boxes,
-  Building2,
-  Store,
-  FileSpreadsheet,
-  CheckCircle2,
-} from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 
-interface InboundPurchasesProps {
-  onOpenInboundModal: () => void;
-}
-
-export const InboundPurchases: React.FC<InboundPurchasesProps> = ({ onOpenInboundModal }) => {
+export const InboundPurchases: React.FC = () => {
   const {
     inboundShipments,
     products,
@@ -28,7 +16,8 @@ export const InboundPurchases: React.FC<InboundPurchasesProps> = ({ onOpenInboun
     lang,
   } = useApp();
 
-  // Inline Quick Entry Form State
+  // Form toggle & state
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id || '');
   const [productId, setProductId] = useState<string>(products[0]?.id || '');
   const [quantity, setQuantity] = useState<number>(50);
@@ -38,10 +27,9 @@ export const InboundPurchases: React.FC<InboundPurchasesProps> = ({ onOpenInboun
   const [paymentStatus, setPaymentStatus] = useState<'Unpaid' | 'Partial' | 'Paid'>('Unpaid');
   const [notes, setNotes] = useState<string>('');
 
-  // Table Filters State
+  // Table filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedWarehouseFilter, setSelectedWarehouseFilter] = useState<string>('all');
-  const [selectedSupplierFilter, setSelectedSupplierFilter] = useState<string>('all');
+  const [warehouseFilter, setWarehouseFilter] = useState<string>('all');
 
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
   const selectedProduct = products.find(p => p.id === productId);
@@ -52,7 +40,7 @@ export const InboundPurchases: React.FC<InboundPurchasesProps> = ({ onOpenInboun
     if (p) setUnitCost(p.unitCost);
   };
 
-  const handleInlineSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSupplier || !selectedProduct) return;
 
@@ -67,118 +55,86 @@ export const InboundPurchases: React.FC<InboundPurchasesProps> = ({ onOpenInboun
       targetWarehouse,
       purchaseDate,
       paymentStatus,
-      notes: notes || undefined,
+      notes: notes.trim() || undefined,
     });
 
-    // Reset notes
+    // Reset & close form
+    setQuantity(50);
     setNotes('');
+    setIsFormOpen(false);
   };
 
-  // Filtered shipments
   const filteredShipments = inboundShipments.filter(item => {
     const matchesSearch =
       item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.supplierName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.reference.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesWarehouse =
-      selectedWarehouseFilter === 'all' || item.targetWarehouse === selectedWarehouseFilter;
-
-    const matchesSupplier =
-      selectedSupplierFilter === 'all' || item.supplierId === selectedSupplierFilter;
-
-    return matchesSearch && matchesWarehouse && matchesSupplier;
+    const matchesWh = warehouseFilter === 'all' || item.targetWarehouse === warehouseFilter;
+    return matchesSearch && matchesWh;
   });
 
-  const totalInboundValue = inboundShipments.reduce((acc, item) => acc + item.totalCost, 0);
-  const totalInboundUnits = inboundShipments.reduce((acc, item) => acc + item.quantity, 0);
-
   return (
-    <div className="space-y-6">
-      {/* 1. Header Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-400 uppercase">{lang === 'ar' ? 'إجمالي قيمة التوريدات' : 'Total Inbound Value'}</span>
-            <div className="text-xl font-black text-slate-100 font-mono mt-1">{formatCurrency(totalInboundValue)}</div>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-            <DollarSign className="w-4 h-4" />
-          </div>
+    <div className="space-y-5">
+      {/* 1. Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-zinc-100 tracking-tight">{t.inboundTitle}</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">{t.inboundSubtitle}</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-400 uppercase">{lang === 'ar' ? 'إجمالي القطع المستلمة' : 'Total Units Received'}</span>
-            <div className="text-xl font-black text-slate-100 font-mono mt-1">{totalInboundUnits} <span className="text-xs font-normal text-slate-400">{t.units}</span></div>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/20 flex items-center justify-center">
-            <Boxes className="w-4 h-4" />
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-slate-400 uppercase">{lang === 'ar' ? 'عدد الشحنات المسجلة' : 'Shipment Batches'}</span>
-            <div className="text-xl font-black text-slate-100 font-mono mt-1">{inboundShipments.length}</div>
-          </div>
-          <div className="w-9 h-9 rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/20 flex items-center justify-center">
-            <FileSpreadsheet className="w-4 h-4" />
-          </div>
-        </div>
+        <button
+          onClick={() => setIsFormOpen(!isFormOpen)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors self-start sm:self-auto shadow-xs"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>{isFormOpen ? t.cancel : t.newInboundBtn}</span>
+        </button>
       </div>
 
-      {/* 2. Inbound Entry Form - Explicit Requirement */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              <PackagePlus className="w-5 h-5 text-emerald-400" />
-              {t.inboundTitle}
+      {/* 2. Collapsible Inbound Form */}
+      {isFormOpen && (
+        <form onSubmit={handleSubmit} className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg space-y-4">
+          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+            <h3 className="text-sm font-semibold text-zinc-100">
+              {lang === 'ar' ? 'تسجيل شحنة توريد جديدة' : 'Record New Inbound Shipment'}
             </h3>
-            <p className="text-xs text-slate-400">{t.inboundSubtitle}</p>
+            <span className="text-xs text-zinc-400 font-mono">
+              {lang === 'ar' ? 'الإجمالي المتوقع:' : 'Expected Total:'}{' '}
+              <strong className="text-zinc-100 font-bold">{formatCurrency(quantity * unitCost)}</strong>
+            </span>
           </div>
-          <span className="px-2.5 py-1 text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-lg">
-            {lang === 'ar' ? 'تحديث فوري للمخزون والذمم الدائنة' : 'Live Inventory & AP Sync'}
-          </span>
-        </div>
 
-        <form onSubmit={handleInlineSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Supplier Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* Supplier */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {t.supplierNameLabel}
-              </label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.supplierNameLabel}</label>
               <select
                 value={supplierId}
                 onChange={e => setSupplierId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               >
                 {suppliers.map(s => (
-                  <option key={s.id} value={s.id}>
+                  <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
                     {lang === 'ar' ? s.nameAr : s.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Product Name */}
+            {/* Product */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {t.productNameLabel}
-              </label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productNameLabel}</label>
               <select
                 value={productId}
                 onChange={e => handleProductSelect(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               >
                 {products.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {lang === 'ar' ? p.nameAr : p.name} [{p.sku}]
+                  <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
+                    {p.sku} - {lang === 'ar' ? p.nameAr : p.name}
                   </option>
                 ))}
               </select>
@@ -186,221 +142,167 @@ export const InboundPurchases: React.FC<InboundPurchasesProps> = ({ onOpenInboun
 
             {/* Target Warehouse */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {t.targetWarehouseLabel}
-              </label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.targetWarehouseLabel}</label>
               <select
                 value={targetWarehouse}
                 onChange={e => setTargetWarehouse(e.target.value as WarehouseId)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
-                <option value="main">{t.mainWarehouse}</option>
-                <option value="noon">{t.noonWarehouse}</option>
+                <option value="main" className="bg-zinc-900 text-zinc-100">{lang === 'ar' ? 'المستودع الرئيسي (القاهرة)' : 'Main Warehouse (Cairo)'}</option>
+                <option value="noon" className="bg-zinc-900 text-zinc-100">{lang === 'ar' ? 'مستودع نون FBN (أكتوبر)' : 'Noon FBN Warehouse'}</option>
               </select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {/* Quantity */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {t.quantity}
-              </label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.quantity}</label>
               <input
                 type="number"
                 min="1"
                 value={quantity}
-                onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold font-mono text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               />
             </div>
 
             {/* Unit Cost */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {t.unitCost}
-              </label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.unitCost} ({t.currency})</label>
               <input
                 type="number"
-                min="0.1"
-                step="any"
+                min="0.01"
+                step="0.01"
                 value={unitCost}
-                onChange={e => setUnitCost(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold font-mono text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-            </div>
-
-            {/* Purchase Date */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {t.purchaseDateLabel}
-              </label>
-              <input
-                type="date"
-                value={purchaseDate}
-                onChange={e => setPurchaseDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                onChange={e => setUnitCost(Math.max(0.01, parseFloat(e.target.value) || 0))}
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               />
             </div>
 
             {/* Payment Status */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {t.paymentStatusLabel}
-              </label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.paymentStatusLabel}</label>
               <select
                 value={paymentStatus}
                 onChange={e => setPaymentStatus(e.target.value as 'Unpaid' | 'Partial' | 'Paid')}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
-                <option value="Unpaid">{t.unpaid}</option>
-                <option value="Partial">{t.partial}</option>
-                <option value="Paid">{t.paid}</option>
+                <option value="Unpaid" className="bg-zinc-900 text-zinc-100">{t.unpaid}</option>
+                <option value="Paid" className="bg-zinc-900 text-zinc-100">{t.paid}</option>
+                <option value="Partial" className="bg-zinc-900 text-zinc-100">{t.partial}</option>
               </select>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-            <div className="text-xs text-slate-400 flex items-center gap-2">
-              <span className="font-semibold text-slate-300">{t.totalCost}:</span>
-              <span className="text-sm font-bold text-emerald-400 font-mono">
-                {formatCurrency(quantity * unitCost)}
-              </span>
-              <span className="text-[11px] text-slate-400">
-                ({quantity} × {formatCurrency(unitCost)})
-              </span>
-            </div>
-
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
+            <button
+              type="button"
+              onClick={() => setIsFormOpen(false)}
+              className="px-3 py-1.5 text-xs font-medium border border-zinc-700 rounded-md text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            >
+              {t.cancel}
+            </button>
             <button
               type="submit"
-              className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2"
+              className="px-4 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 rounded-md hover:bg-white transition-colors"
             >
-              <PackagePlus className="w-4 h-4" />
-              <span>{t.newInboundBtn}</span>
+              {t.submit}
             </button>
           </div>
         </form>
-      </div>
+      )}
 
-      {/* 3. Summary Table: Recent Incoming Shipments */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-slate-100">{t.inboundHistory}</h3>
-            <p className="text-xs text-slate-400">{lang === 'ar' ? 'سجل كافة التوريدات السابقة والمستودعات المستلمة' : 'Audit trail of past supplier consignments'}</p>
-          </div>
-
-          {/* Filters & Search */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="relative min-w-[180px]">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder={t.search}
-                className="w-full ps-8 pe-3 py-1.5 text-xs bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-400 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              />
-            </div>
-
-            <select
-              value={selectedWarehouseFilter}
-              onChange={e => setSelectedWarehouseFilter(e.target.value)}
-              className="px-2.5 py-1.5 text-xs font-medium bg-slate-800 border border-slate-700 rounded-xl text-slate-200"
-            >
-              <option value="all">{t.allWarehouses}</option>
-              <option value="main">{t.mainWarehouse}</option>
-              <option value="noon">{t.noonWarehouse}</option>
-            </select>
-
-            <select
-              value={selectedSupplierFilter}
-              onChange={e => setSelectedSupplierFilter(e.target.value)}
-              className="px-2.5 py-1.5 text-xs font-medium bg-slate-800 border border-slate-700 rounded-xl text-slate-200"
-            >
-              <option value="all">{t.allSuppliers}</option>
-              {suppliers.map(s => (
-                <option key={s.id} value={s.id}>
-                  {lang === 'ar' ? s.nameAr : s.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* 3. Filters & Search */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 absolute start-2.5 top-2.5 text-zinc-500" />
+          <input
+            type="text"
+            placeholder={t.search}
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full ps-8 pe-3 py-1.5 text-xs rounded-md border border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+          />
         </div>
 
-        {/* Table */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <select
+            value={warehouseFilter}
+            onChange={e => setWarehouseFilter(e.target.value)}
+            className="text-xs rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+          >
+            <option value="all" className="bg-zinc-900">{t.allWarehouses}</option>
+            <option value="main" className="bg-zinc-900">{lang === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse'}</option>
+            <option value="noon" className="bg-zinc-900">Noon FBN</option>
+          </select>
+        </div>
+      </div>
+
+      {/* 4. Shipments Table */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-start text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                <th className="pb-3 text-start">{t.reference}</th>
-                <th className="pb-3 text-start">{t.product}</th>
-                <th className="pb-3 text-start">{t.supplier}</th>
-                <th className="pb-3 text-start">{t.warehouse}</th>
-                <th className="pb-3 text-center">{t.quantity}</th>
-                <th className="pb-3 text-end">{t.unitCost}</th>
-                <th className="pb-3 text-end">{t.totalCost}</th>
-                <th className="pb-3 text-center">{t.date}</th>
-                <th className="pb-3 text-center">{t.status}</th>
+          <table className="w-full text-xs text-start">
+            <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 font-medium uppercase tracking-wider">
+              <tr>
+                <th className="px-3 py-2.5 text-start">{t.reference}</th>
+                <th className="px-3 py-2.5 text-start">{t.date}</th>
+                <th className="px-3 py-2.5 text-start">{t.supplier}</th>
+                <th className="px-3 py-2.5 text-start">{t.product}</th>
+                <th className="px-3 py-2.5 text-end">{t.quantity}</th>
+                <th className="px-3 py-2.5 text-end">{t.totalCost}</th>
+                <th className="px-3 py-2.5 text-start">{t.warehouse}</th>
+                <th className="px-3 py-2.5 text-start">{t.status}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
-              {filteredShipments.map(ship => (
-                <tr key={ship.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 font-mono font-bold text-slate-300">
-                    {ship.reference}
-                  </td>
-                  <td className="py-3">
-                    <div className="font-bold text-slate-100">{ship.productName}</div>
-                    <div className="text-[10px] text-slate-400 font-mono">{ship.sku}</div>
-                  </td>
-                  <td className="py-3 text-slate-300 font-medium">{ship.supplierName}</td>
-                  <td className="py-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
-                      ship.targetWarehouse === 'noon'
-                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                        : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                    }`}>
-                      {ship.targetWarehouse === 'noon' ? <Store className="w-3 h-3 text-amber-400" /> : <Building2 className="w-3 h-3 text-blue-400" />}
-                      {ship.targetWarehouse === 'noon' ? 'Noon FBN' : (lang === 'ar' ? 'الرئيسي' : 'Main')}
-                    </span>
-                  </td>
-                  <td className="py-3 text-center font-mono font-bold text-slate-100">
-                    {ship.quantity}
-                  </td>
-                  <td className="py-3 text-end font-mono text-slate-300">
-                    {formatCurrency(ship.unitCost)}
-                  </td>
-                  <td className="py-3 text-end font-mono font-bold text-slate-100">
-                    {formatCurrency(ship.totalCost)}
-                  </td>
-                  <td className="py-3 text-center text-slate-400 font-mono">
-                    {ship.purchaseDate}
-                  </td>
-                  <td className="py-3 text-center">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      ship.paymentStatus === 'Paid'
-                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                        : ship.paymentStatus === 'Partial'
-                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                        : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                    }`}>
-                      {ship.paymentStatus}
-                    </span>
+            <tbody className="divide-y divide-zinc-800/80">
+              {filteredShipments.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-3 py-8 text-center text-zinc-500">
+                    {lang === 'ar' ? 'لا توجد شحنات تطابق البحث' : 'No shipments found'}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredShipments.map(item => (
+                  <tr key={item.id} className="hover:bg-zinc-800/40 transition-colors">
+                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{item.reference}</td>
+                    <td className="px-3 py-2.5 text-zinc-400">{item.purchaseDate}</td>
+                    <td className="px-3 py-2.5 font-medium text-zinc-200">{item.supplierName}</td>
+                    <td className="px-3 py-2.5">
+                      <span className="font-medium text-zinc-200">{item.productName}</span>
+                      <span className="block text-[11px] text-zinc-500">{item.sku}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">
+                      {item.quantity}
+                    </td>
+                    <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-100">
+                      {formatCurrency(item.totalCost)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                        item.targetWarehouse === 'noon'
+                          ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
+                          : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
+                      }`}>
+                        {item.targetWarehouse === 'noon' ? 'Noon FBN' : 'Main'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                        item.paymentStatus === 'Paid'
+                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
+                          : item.paymentStatus === 'Partial'
+                          ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
+                          : 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
+                      }`}>
+                        {item.paymentStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-
-          {filteredShipments.length === 0 && (
-            <div className="py-8 text-center text-xs text-slate-400">
-              {lang === 'ar' ? 'لا توجد شحنات مطابقة لشروط البحث' : 'No shipments found matching filters'}
-            </div>
-          )}
         </div>
       </div>
     </div>

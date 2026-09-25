@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" dir="ltr">
-      <body className="bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
+      <body className="bg-zinc-950 text-zinc-100 antialiased selection:bg-zinc-100 selection:text-zinc-950">
         {children}
       </body>
     </html>

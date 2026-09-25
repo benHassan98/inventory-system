@@ -1,28 +1,15 @@
+'use client';
+
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
-  TrendingUp,
   Landmark,
   HandCoins,
-  DollarSign,
   Receipt,
-  FileText,
-  Building2,
-  Calendar,
-  CheckCircle2,
   Plus,
-  Percent,
 } from 'lucide-react';
 
-interface FinancialsLedgersProps {
-  onOpenNoonPayout: () => void;
-  onOpenSupplierPayment: (supplierId?: string) => void;
-}
-
-export const FinancialsLedgers: React.FC<FinancialsLedgersProps> = ({
-  onOpenNoonPayout,
-  onOpenSupplierPayment,
-}) => {
+export const FinancialsLedgers: React.FC = () => {
   const {
     sales,
     returns,
@@ -34,14 +21,30 @@ export const FinancialsLedgers: React.FC<FinancialsLedgersProps> = ({
     netProfit,
     noonReceivablesBalance,
     supplierPayablesBalance,
+    addNoonSettlement,
+    addSupplierPayment,
     formatCurrency,
     t,
     lang,
   } = useApp();
 
-  const [activeLedgerTab, setActiveLedgerTab] = useState<'pnl' | 'noon' | 'suppliers'>('pnl');
+  const [activeTab, setActiveTab] = useState<'pnl' | 'noon' | 'suppliers'>('pnl');
 
-  // Breakdown calculations
+  // Noon Payout Form
+  const [isNoonFormOpen, setIsNoonFormOpen] = useState(false);
+  const [noonPayoutAmount, setNoonPayoutAmount] = useState<number>(noonReceivablesBalance > 0 ? noonReceivablesBalance : 5000);
+  const [noonPaymentMethod, setNoonPaymentMethod] = useState<string>('Bank Wire Transfer');
+  const [noonBankRef, setNoonBankRef] = useState<string>('CIB-TRX-8841');
+  const [noonPayoutDate, setNoonPayoutDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  // Supplier Payment Form
+  const [isSupplierFormOpen, setIsSupplierFormOpen] = useState(false);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>(suppliers[0]?.id || '');
+  const [supplierPaymentAmount, setSupplierPaymentAmount] = useState<number>(1000);
+  const [supplierPaymentMethod, setSupplierPaymentMethod] = useState<string>('InstaPay / Bank Transfer');
+  const [supplierPaymentDate, setSupplierPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  // P&L Calculations
   const totalNoonGrossSales = sales
     .filter(s => s.sourceWarehouse === 'noon')
     .reduce((acc, s) => acc + s.totalRevenue, 0);
@@ -55,398 +58,446 @@ export const FinancialsLedgers: React.FC<FinancialsLedgersProps> = ({
     .reduce((acc, s) => acc + s.totalRevenue * s.noonFeeRate, 0);
 
   const totalRefunds = returns.reduce((acc, r) => acc + r.refundAmount, 0);
-  const totalNoonPayoutsReceived = noonSettlements.reduce((acc, p) => acc + p.amount, 0);
-  const totalSupplierPaymentsMade = supplierPayments.reduce((acc, p) => acc + p.amount, 0);
 
-  const profitMargin = totalSalesRevenue > 0 ? ((netProfit / totalSalesRevenue) * 100).toFixed(1) : '0';
+  const handleNoonPayoutSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (noonPayoutAmount <= 0) return;
+
+    addNoonSettlement({
+      amount: Number(noonPayoutAmount),
+      paymentMethod: noonPaymentMethod,
+      bankReference: noonBankRef,
+      date: noonPayoutDate,
+      notes: 'Noon Marketplace Bi-weekly Disbursement',
+    });
+
+    setIsNoonFormOpen(false);
+  };
+
+  const handleSupplierPaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const sup = suppliers.find(s => s.id === selectedSupplierId);
+    if (!sup || supplierPaymentAmount <= 0) return;
+
+    addSupplierPayment({
+      supplierId: sup.id,
+      supplierName: lang === 'ar' ? sup.nameAr : sup.name,
+      amount: Number(supplierPaymentAmount),
+      paymentMethod: supplierPaymentMethod,
+      date: supplierPaymentDate,
+      notes: 'Supplier partial/full settlement',
+    });
+
+    setIsSupplierFormOpen(false);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* 1. Module Selector Tabs */}
-      <div className="flex items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl w-fit shadow-xs">
+    <div className="space-y-5">
+      {/* 1. Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-zinc-100 tracking-tight">{t.financialsTitle}</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">{t.financialsSubtitle}</p>
+        </div>
+
+        {activeTab === 'noon' && (
+          <button
+            onClick={() => setIsNoonFormOpen(!isNoonFormOpen)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors self-start sm:self-auto shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{isNoonFormOpen ? t.cancel : t.recordNoonPayoutBtn}</span>
+          </button>
+        )}
+
+        {activeTab === 'suppliers' && (
+          <button
+            onClick={() => setIsSupplierFormOpen(!isSupplierFormOpen)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors self-start sm:self-auto shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{isSupplierFormOpen ? t.cancel : t.recordSupplierPaymentBtn}</span>
+          </button>
+        )}
+      </div>
+
+      {/* 2. Sub Tabs */}
+      <div className="flex space-x-1 border-b border-zinc-800 pb-2">
         <button
-          onClick={() => setActiveLedgerTab('pnl')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-            activeLedgerTab === 'pnl'
-              ? 'bg-slate-800 text-white shadow-xs border border-slate-700'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          onClick={() => setActiveTab('pnl')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            activeTab === 'pnl'
+              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
           }`}
         >
-          <TrendingUp className="w-4 h-4 text-emerald-400" />
+          <Receipt className="w-3.5 h-3.5" />
           <span>{t.pnlSummary}</span>
         </button>
-
         <button
-          onClick={() => setActiveLedgerTab('noon')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-            activeLedgerTab === 'noon'
-              ? 'bg-amber-500 text-slate-950 shadow-xs'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          onClick={() => setActiveTab('noon')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            activeTab === 'noon'
+              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
           }`}
         >
-          <Landmark className="w-4 h-4 text-amber-900" />
-          <span>{lang === 'ar' ? 'فلوسك عند نون (FBN)' : 'Noon Settlement'}</span>
-          <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded text-[10px] font-bold border border-amber-500/30">
-            {formatCurrency(noonReceivablesBalance)}
-          </span>
+          <Landmark className="w-3.5 h-3.5" />
+          <span>{t.noonLedgerTitle}</span>
         </button>
-
         <button
-          onClick={() => setActiveLedgerTab('suppliers')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-            activeLedgerTab === 'suppliers'
-              ? 'bg-teal-600 text-white shadow-xs'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          onClick={() => setActiveTab('suppliers')}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+            activeTab === 'suppliers'
+              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
           }`}
         >
-          <HandCoins className="w-4 h-4 text-teal-200" />
-          <span>{lang === 'ar' ? 'حسابات التجار والموردين' : 'Supplier Payables'}</span>
-          <span className="px-1.5 py-0.2 bg-teal-500/20 text-teal-300 rounded text-[10px] font-bold border border-teal-500/30">
-            {formatCurrency(supplierPayablesBalance)}
-          </span>
+          <HandCoins className="w-3.5 h-3.5" />
+          <span>{t.supplierLedgerTitle}</span>
         </button>
       </div>
 
-      {/* 2. SECTION A: Profit & Loss Summary */}
-      {activeLedgerTab === 'pnl' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Top KPI row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
-              <span className="text-xs font-bold text-slate-400 uppercase">{t.totalRevenue}</span>
-              <div className="text-2xl font-black text-slate-100 font-mono mt-1">{formatCurrency(totalSalesRevenue)}</div>
-              <span className="text-xs text-slate-400 mt-1 block">
-                {sales.length} {lang === 'ar' ? 'طلبات عبر نون والمتجر' : 'total fulfilled orders'}
+      {/* 3. P&L TAB */}
+      {activeTab === 'pnl' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+              <span className="text-xs font-medium text-zinc-400 block">{t.totalRevenue}</span>
+              <span className="text-xl font-bold text-zinc-100 font-mono mt-1 block">
+                {formatCurrency(totalSalesRevenue)}
               </span>
             </div>
-
-            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
-              <span className="text-xs font-bold text-slate-400 uppercase">{t.totalCogs}</span>
-              <div className="text-2xl font-black text-slate-200 font-mono mt-1">{formatCurrency(totalCOGS)}</div>
-              <span className="text-xs text-slate-400 mt-1 block">
-                {lang === 'ar' ? 'تكلفة شراء المنتجات المباعة' : 'Actual inventory cost base'}
+            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+              <span className="text-xs font-medium text-zinc-400 block">{t.totalCogs}</span>
+              <span className="text-xl font-bold text-zinc-300 font-mono mt-1 block">
+                {formatCurrency(totalCOGS)}
               </span>
             </div>
-
-            <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 shadow-sm">
-              <span className="text-xs font-bold text-emerald-400 uppercase">{t.kpiNetProfit}</span>
-              <div className="text-2xl font-black text-emerald-300 font-mono mt-1">{formatCurrency(netProfit)}</div>
-              <span className="text-xs text-emerald-400 font-bold mt-1 block">
-                {profitMargin}% {t.netProfitRate}
-              </span>
-            </div>
-
-            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm">
-              <span className="text-xs font-bold text-slate-400 uppercase">{t.noonFeesDeducted}</span>
-              <div className="text-2xl font-black text-amber-400 font-mono mt-1">{formatCurrency(totalNoonFees)}</div>
-              <span className="text-xs text-slate-400 mt-1 block">
-                {lang === 'ar' ? 'عمولات منصة وفاء نون' : 'FBN commission & handling'}
+            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+              <span className="text-xs font-medium text-zinc-400 block">{t.kpiNetProfit}</span>
+              <span className={`text-xl font-bold font-mono mt-1 block ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {formatCurrency(netProfit)}
               </span>
             </div>
           </div>
 
-          {/* Mathematical Statement Breakdown Card */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-slate-400" />
-              {lang === 'ar' ? 'تفصيل معادلة الأرباح والخسائر: Net Profit = (Selling Price - Unit Cost) * Qty' : 'Profit & Loss Detailed Breakdown'}
-            </h3>
+          {/* Minimal Statement Table */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="p-3 bg-zinc-950/80 border-b border-zinc-800">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                {lang === 'ar' ? 'تفصيل الإيرادات والمصروفات' : 'Financial Breakdown'}
+              </h3>
+            </div>
+            <table className="w-full text-xs">
+              <tbody className="divide-y divide-zinc-800/80">
+                <tr className="hover:bg-zinc-800/40">
+                  <td className="px-4 py-2.5 text-zinc-200 font-medium">Noon FBN Marketplace Sales</td>
+                  <td className="px-4 py-2.5 text-end font-mono font-medium text-zinc-100">+{formatCurrency(totalNoonGrossSales)}</td>
+                </tr>
+                <tr className="hover:bg-zinc-800/40">
+                  <td className="px-4 py-2.5 text-zinc-200 font-medium">Direct / Store Sales</td>
+                  <td className="px-4 py-2.5 text-end font-mono font-medium text-zinc-100">+{formatCurrency(totalDirectGrossSales)}</td>
+                </tr>
+                <tr className="hover:bg-zinc-800/40">
+                  <td className="px-4 py-2.5 text-zinc-400">Less: Cost of Goods Sold (COGS)</td>
+                  <td className="px-4 py-2.5 text-end font-mono font-medium text-rose-400">-{formatCurrency(totalCOGS)}</td>
+                </tr>
+                <tr className="hover:bg-zinc-800/40">
+                  <td className="px-4 py-2.5 text-zinc-400">Less: Noon Marketplace Commissions & FBN Fees</td>
+                  <td className="px-4 py-2.5 text-end font-mono font-medium text-rose-400">-{formatCurrency(totalNoonFees)}</td>
+                </tr>
+                <tr className="hover:bg-zinc-800/40">
+                  <td className="px-4 py-2.5 text-zinc-400">Less: Customer Returns & Refunds</td>
+                  <td className="px-4 py-2.5 text-end font-mono font-medium text-rose-400">-{formatCurrency(totalRefunds)}</td>
+                </tr>
+                <tr className="bg-zinc-950/80 font-bold border-t border-zinc-800">
+                  <td className="px-4 py-3 text-zinc-100 text-sm">{t.kpiNetProfit}</td>
+                  <td className={`px-4 py-3 text-end font-mono text-base ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {formatCurrency(netProfit)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
-            <div className="space-y-3 pt-2 text-xs">
-              {/* Line 1: Gross Sales */}
-              <div className="flex items-center justify-between py-2 border-b border-slate-800">
-                <span className="font-semibold text-slate-300">{lang === 'ar' ? '(+) إجمالي المبيعات المحققة (Gross Revenue)' : '(+) Gross Revenue'}</span>
-                <span className="font-mono font-bold text-slate-100 text-sm">{formatCurrency(totalSalesRevenue)}</span>
-              </div>
+      {/* 4. NOON ACCOUNT TAB */}
+      {activeTab === 'noon' && (
+        <div className="space-y-4">
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-between">
+            <div>
+              <span className="text-xs font-medium text-zinc-400 block">{t.noonPendingBalance}</span>
+              <span className="text-xl font-bold text-amber-400 font-mono mt-1 block">
+                {formatCurrency(noonReceivablesBalance)}
+              </span>
+              <span className="text-[11px] text-zinc-500 block mt-0.5">
+                {lang === 'ar' ? 'مستحقات معلقة لدى نون بعد خصم العمولات' : 'Owed by Noon after marketplace fees deduction'}
+              </span>
+            </div>
+            <button
+              onClick={() => setIsNoonFormOpen(!isNoonFormOpen)}
+              className="px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md shadow-xs"
+            >
+              {isNoonFormOpen ? t.cancel : t.recordNoonPayoutBtn}
+            </button>
+          </div>
 
-              {/* Line 2: COGS */}
-              <div className="flex items-center justify-between py-2 border-b border-slate-800 text-slate-300">
-                <span className="font-semibold">(-) تكلفة البضاعة المباعة (Cost of Goods Sold - COGS)</span>
-                <span className="font-mono font-bold text-rose-400">-{formatCurrency(totalCOGS)}</span>
-              </div>
-
-              {/* Line 3: Noon Fees */}
-              <div className="flex items-center justify-between py-2 border-b border-slate-800 text-slate-300">
-                <span className="font-semibold">(-) عمولات ورسوم تشغيل مستودع نون FBN</span>
-                <span className="font-mono font-bold text-amber-400">-{formatCurrency(totalNoonFees)}</span>
-              </div>
-
-              {/* Line 4: Refunds */}
-              <div className="flex items-center justify-between py-2 border-b border-slate-800 text-slate-300">
-                <span className="font-semibold">(-) مبالغ المرتجعات المستردة للعملاء (Customer Refunds)</span>
-                <span className="font-mono font-bold text-rose-400">-{formatCurrency(totalRefunds)}</span>
-              </div>
-
-              {/* Net Profit Total */}
-              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-950 border border-slate-800 text-white">
+          {/* Collapsible Noon Payout Form */}
+          {isNoonFormOpen && (
+            <form onSubmit={handleNoonPayoutSubmit} className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg space-y-3">
+              <h3 className="text-sm font-semibold text-zinc-100 border-b border-zinc-800/80 pb-2">
+                {t.recordNoonPayoutBtn}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <div className="text-sm font-bold flex items-center gap-1.5 text-emerald-400">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>{lang === 'ar' ? 'صافي الربح الفعلي (Net Profit)' : 'Net Operating Profit'}</span>
-                  </div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">
-                    {lang === 'ar' ? `هامش الربح التشغيلي: ${profitMargin}%` : `Net Margin: ${profitMargin}%`}
-                  </div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.payoutAmountLabel} ({t.currency})</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={noonPayoutAmount}
+                    onChange={e => setNoonPayoutAmount(Math.max(1, parseFloat(e.target.value) || 0))}
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
                 </div>
-                <div className="text-2xl font-black font-mono text-emerald-400">
-                  {formatCurrency(netProfit)}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.bankRefLabel}</label>
+                  <input
+                    type="text"
+                    value={noonBankRef}
+                    onChange={e => setNoonBankRef(e.target.value)}
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.date}</label>
+                  <input
+                    type="date"
+                    value={noonPayoutDate}
+                    onChange={e => setNoonPayoutDate(e.target.value)}
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
                 </div>
               </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800/80">
+                <button
+                  type="button"
+                  onClick={() => setIsNoonFormOpen(false)}
+                  className="px-3 py-1.5 text-xs border border-zinc-700 rounded-md text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 rounded-md hover:bg-white transition-colors"
+                >
+                  {t.submit}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Payout Settlements Table */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="p-3 bg-zinc-950/80 border-b border-zinc-800">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                {t.payoutHistory}
+              </h3>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* 2. SECTION B: Noon Settlement Ledger (فلوسك عند نون) */}
-      {activeLedgerTab === 'noon' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Noon settlement summary card */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-amber-500/30 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-extrabold text-amber-300 flex items-center gap-2">
-                    <Landmark className="w-5 h-5 text-amber-400" />
-                    {t.noonLedgerTitle}
-                  </h3>
-                  <span className="px-2 py-0.5 text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded">
-                    Noon FBN
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 mt-1 max-w-xl">{t.noonLedgerDesc}</p>
-              </div>
-
-              <button
-                onClick={onOpenNoonPayout}
-                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t.recordNoonPayoutBtn}</span>
-              </button>
-            </div>
-
-            {/* Balances grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700">
-                <span className="text-[11px] font-bold text-slate-400 uppercase">{t.noonGrossSales}</span>
-                <div className="text-lg font-black font-mono text-slate-100 mt-1">
-                  {formatCurrency(totalNoonGrossSales)}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700">
-                <span className="text-[11px] font-bold text-slate-400 uppercase">{t.noonFeesDeducted}</span>
-                <div className="text-lg font-black font-mono text-amber-400 mt-1">
-                  -{formatCurrency(totalNoonFees)}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700">
-                <span className="text-[11px] font-bold text-slate-400 uppercase">{t.noonPayoutsReceived}</span>
-                <div className="text-lg font-black font-mono text-emerald-400 mt-1">
-                  {formatCurrency(totalNoonPayoutsReceived)}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30">
-                <span className="text-[11px] font-bold text-amber-300 uppercase">{t.noonPendingBalance}</span>
-                <div className="text-xl font-black font-mono text-amber-300 mt-1">
-                  {formatCurrency(noonReceivablesBalance)}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Payout records table */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-slate-100">{t.payoutHistory}</h3>
-                <p className="text-xs text-slate-400">{lang === 'ar' ? 'سجل الحوالات البنكية المحولة من نون إلى حسابك' : 'Historical disbursement wires from Noon to your account'}</p>
-              </div>
-              <span className="text-xs text-slate-400 font-mono">{noonSettlements.length} {lang === 'ar' ? 'حوالات' : 'payouts'}</span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-start text-xs">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="pb-3 text-start">{t.reference}</th>
-                    <th className="pb-3 text-start">{lang === 'ar' ? 'الحساب البنكي' : 'Bank Account'}</th>
-                    <th className="pb-3 text-start">{t.bankRefLabel}</th>
-                    <th className="pb-3 text-center">{t.date}</th>
-                    <th className="pb-3 text-start">{t.notes}</th>
-                    <th className="pb-3 text-end">{lang === 'ar' ? 'المبلغ المحول' : 'Payout Amount'}</th>
+            <table className="w-full text-xs">
+              <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 uppercase">
+                <tr>
+                  <th className="px-3 py-2 text-start">{t.reference}</th>
+                  <th className="px-3 py-2 text-start">{t.date}</th>
+                  <th className="px-3 py-2 text-start">{lang === 'ar' ? 'طريقة السداد' : 'Method'}</th>
+                  <th className="px-3 py-2 text-start">{t.bankRefLabel}</th>
+                  <th className="px-3 py-2 text-end">{t.totalAmount}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/80">
+                {noonSettlements.map(item => (
+                  <tr key={item.id} className="hover:bg-zinc-800/40">
+                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{item.reference}</td>
+                    <td className="px-3 py-2.5 text-zinc-400">{item.date}</td>
+                    <td className="px-3 py-2.5 text-zinc-300">{item.paymentMethod}</td>
+                    <td className="px-3 py-2.5 font-mono text-zinc-400">{item.bankReference}</td>
+                    <td className="px-3 py-2.5 text-end font-mono font-bold text-emerald-400">
+                      +{formatCurrency(item.amount)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {noonSettlements.map(set => (
-                    <tr key={set.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 font-mono font-bold text-slate-300">
-                        {set.reference}
-                      </td>
-                      <td className="py-3 font-medium text-slate-100">
-                        {set.paymentMethod}
-                      </td>
-                      <td className="py-3 font-mono text-slate-400">
-                        {set.bankReference}
-                      </td>
-                      <td className="py-3 text-center text-slate-400 font-mono">
-                        {set.date}
-                      </td>
-                      <td className="py-3 text-slate-400 max-w-xs truncate">
-                        {set.notes || '—'}
-                      </td>
-                      <td className="py-3 text-end font-mono font-black text-emerald-400 text-sm">
-                        +{formatCurrency(set.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* 2. SECTION C: Supplier Accounts Payable (حسابات التجار) */}
-      {activeLedgerTab === 'suppliers' && (
-        <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Supplier balances overview card */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-teal-500/30 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-100 flex items-center gap-2">
-                  <HandCoins className="w-5 h-5 text-teal-400" />
-                  {t.supplierLedgerTitle}
-                </h3>
-                <p className="text-xs text-slate-400 mt-1 max-w-xl">{t.supplierLedgerDesc}</p>
-              </div>
-
-              <button
-                onClick={() => onOpenSupplierPayment()}
-                className="px-5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t.recordSupplierPaymentBtn}</span>
-              </button>
-            </div>
-
-            {/* Total balance owed badge */}
-            <div className="p-4 rounded-xl bg-teal-950/40 border border-teal-500/30 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-teal-300 uppercase">{lang === 'ar' ? 'إجمالي الديون والذمم الدائنة لكافة الموردين' : 'Total Outstanding Accounts Payable'}</span>
-                <div className="text-2xl font-black text-teal-200 font-mono mt-1">
-                  {formatCurrency(supplierPayablesBalance)}
-                </div>
-              </div>
-              <span className="text-xs font-bold px-3 py-1 bg-teal-500/20 text-teal-300 rounded-lg border border-teal-500/30">
-                {suppliers.length} {lang === 'ar' ? 'موردين معتمدين' : 'Active Vendors'}
+      {/* 5. SUPPLIER PAYABLES TAB */}
+      {activeTab === 'suppliers' && (
+        <div className="space-y-4">
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-between">
+            <div>
+              <span className="text-xs font-medium text-zinc-400 block">{t.kpiSupplierPayables}</span>
+              <span className="text-xl font-bold text-rose-400 font-mono mt-1 block">
+                {formatCurrency(supplierPayablesBalance)}
+              </span>
+              <span className="text-[11px] text-zinc-500 block mt-0.5">
+                {lang === 'ar' ? 'إجمالي الديون المستحقة للموردين' : 'Total due across all suppliers'}
               </span>
             </div>
+            <button
+              onClick={() => setIsSupplierFormOpen(!isSupplierFormOpen)}
+              className="px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md shadow-xs"
+            >
+              {isSupplierFormOpen ? t.cancel : t.recordSupplierPaymentBtn}
+            </button>
           </div>
 
-          {/* Supplier Balances Table */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-100">{t.supplierBalancesTable}</h3>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-start text-xs">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="pb-3 text-start">{t.supplier}</th>
-                    <th className="pb-3 text-start">{lang === 'ar' ? 'مسؤول التواصل' : 'Contact Person'}</th>
-                    <th className="pb-3 text-end">{t.totalPurchased}</th>
-                    <th className="pb-3 text-end">{t.totalPaid}</th>
-                    <th className="pb-3 text-end">{t.currentOwed}</th>
-                    <th className="pb-3 text-end">{t.actions}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {suppliers.map(sup => (
-                    <tr key={sup.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3.5 font-bold text-slate-100">
-                        {lang === 'ar' ? sup.nameAr : sup.name}
-                      </td>
-                      <td className="py-3.5 text-slate-400">
-                        <div className="text-slate-200">{sup.contact}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{sup.phone}</div>
-                      </td>
-                      <td className="py-3.5 text-end font-mono font-semibold text-slate-300">
-                        {formatCurrency(sup.totalPurchased)}
-                      </td>
-                      <td className="py-3.5 text-end font-mono font-semibold text-emerald-400">
-                        {formatCurrency(sup.totalPaid)}
-                      </td>
-                      <td className="py-3.5 text-end">
-                        <span className={`font-mono font-bold text-sm ${sup.currentBalance > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
-                          {formatCurrency(sup.currentBalance)}
-                        </span>
-                      </td>
-                      <td className="py-3.5 text-end">
-                        <button
-                          onClick={() => onOpenSupplierPayment(sup.id)}
-                          className="px-2.5 py-1 text-xs font-bold text-teal-300 hover:text-teal-200 bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 rounded-lg transition-colors inline-flex items-center gap-1"
-                        >
-                          <HandCoins className="w-3 h-3" />
-                          <span>{lang === 'ar' ? 'سداد دفعة' : 'Pay'}</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Supplier Payment History Table */}
-          <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-slate-100">{t.paymentHistory}</h3>
-                <p className="text-xs text-slate-400">{lang === 'ar' ? 'سجل السدادات والحوالات البنكية الصادرة للموردين' : 'Outgoing supplier remittances log'}</p>
+          {/* Collapsible Supplier Payment Form */}
+          {isSupplierFormOpen && (
+            <form onSubmit={handleSupplierPaymentSubmit} className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg space-y-3">
+              <h3 className="text-sm font-semibold text-zinc-100 border-b border-zinc-800/80 pb-2">
+                {t.recordSupplierPaymentBtn}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.supplier}</label>
+                  <select
+                    value={selectedSupplierId}
+                    onChange={e => setSelectedSupplierId(e.target.value)}
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  >
+                    {suppliers.map(s => (
+                      <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
+                        {lang === 'ar' ? s.nameAr : s.name} ({formatCurrency(s.currentBalance)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.paymentAmountLabel} ({t.currency})</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    value={supplierPaymentAmount}
+                    onChange={e => setSupplierPaymentAmount(Math.max(1, parseFloat(e.target.value) || 0))}
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.date}</label>
+                  <input
+                    type="date"
+                    value={supplierPaymentDate}
+                    onChange={e => setSupplierPaymentDate(e.target.value)}
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
               </div>
-              <span className="text-xs text-slate-400 font-mono">{supplierPayments.length} {lang === 'ar' ? 'سجلات' : 'records'}</span>
-            </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800/80">
+                <button
+                  type="button"
+                  onClick={() => setIsSupplierFormOpen(false)}
+                  className="px-3 py-1.5 text-xs border border-zinc-700 rounded-md text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 rounded-md hover:bg-white transition-colors"
+                >
+                  {t.submit}
+                </button>
+              </div>
+            </form>
+          )}
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-start text-xs">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="pb-3 text-start">{t.reference}</th>
-                    <th className="pb-3 text-start">{t.supplier}</th>
-                    <th className="pb-3 text-start">{lang === 'ar' ? 'طريقة السداد' : 'Method'}</th>
-                    <th className="pb-3 text-center">{t.date}</th>
-                    <th className="pb-3 text-start">{t.notes}</th>
-                    <th className="pb-3 text-end">{lang === 'ar' ? 'المبلغ المسدد' : 'Amount Paid'}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {supplierPayments.map(pay => (
-                    <tr key={pay.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 font-mono font-bold text-slate-300">
-                        {pay.reference}
-                      </td>
-                      <td className="py-3 font-bold text-slate-100">
-                        {pay.supplierName}
-                      </td>
-                      <td className="py-3 text-slate-400">
-                        {pay.paymentMethod}
-                      </td>
-                      <td className="py-3 text-center text-slate-400 font-mono">
-                        {pay.date}
-                      </td>
-                      <td className="py-3 text-slate-400 max-w-xs truncate">
-                        {pay.notes || '—'}
-                      </td>
-                      <td className="py-3 text-end font-mono font-bold text-slate-100 text-sm">
-                        {formatCurrency(pay.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Supplier Balances List */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="p-3 bg-zinc-950/80 border-b border-zinc-800">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                {t.supplierBalancesTable}
+              </h3>
             </div>
+            <table className="w-full text-xs">
+              <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 uppercase">
+                <tr>
+                  <th className="px-3 py-2 text-start">{t.supplier}</th>
+                  <th className="px-3 py-2 text-end">{t.totalPurchased}</th>
+                  <th className="px-3 py-2 text-end">{t.totalPaid}</th>
+                  <th className="px-3 py-2 text-end">{t.currentOwed}</th>
+                  <th className="px-3 py-2 text-center">{t.actions}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/80">
+                {suppliers.map(s => (
+                  <tr key={s.id} className="hover:bg-zinc-800/40">
+                    <td className="px-3 py-2.5 font-medium text-zinc-200">
+                      {lang === 'ar' ? s.nameAr : s.name}
+                    </td>
+                    <td className="px-3 py-2.5 text-end font-mono text-zinc-300">{formatCurrency(s.totalPurchased)}</td>
+                    <td className="px-3 py-2.5 text-end font-mono text-emerald-400">{formatCurrency(s.totalPaid)}</td>
+                    <td className="px-3 py-2.5 text-end font-mono font-bold text-rose-400">
+                      {formatCurrency(s.currentBalance)}
+                    </td>
+                    <td className="px-3 py-2.5 text-center">
+                      <button
+                        onClick={() => {
+                          setSelectedSupplierId(s.id);
+                          setSupplierPaymentAmount(s.currentBalance > 0 ? s.currentBalance : 1000);
+                          setIsSupplierFormOpen(true);
+                        }}
+                        className="px-2 py-1 text-[11px] font-medium border border-zinc-700 bg-zinc-800 rounded text-zinc-200 hover:bg-zinc-700 hover:text-white"
+                      >
+                        {lang === 'ar' ? 'سداد' : 'Pay'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Supplier Payments History */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+            <div className="p-3 bg-zinc-950/80 border-b border-zinc-800">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
+                {t.paymentHistory}
+              </h3>
+            </div>
+            <table className="w-full text-xs">
+              <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 uppercase">
+                <tr>
+                  <th className="px-3 py-2 text-start">{t.reference}</th>
+                  <th className="px-3 py-2 text-start">{t.date}</th>
+                  <th className="px-3 py-2 text-start">{t.supplier}</th>
+                  <th className="px-3 py-2 text-start">{lang === 'ar' ? 'طريقة السداد' : 'Method'}</th>
+                  <th className="px-3 py-2 text-end">{t.totalAmount}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/80">
+                {supplierPayments.map(p => (
+                  <tr key={p.id} className="hover:bg-zinc-800/40">
+                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{p.reference}</td>
+                    <td className="px-3 py-2.5 text-zinc-400">{p.date}</td>
+                    <td className="px-3 py-2.5 font-medium text-zinc-200">{p.supplierName}</td>
+                    <td className="px-3 py-2.5 text-zinc-300">{p.paymentMethod}</td>
+                    <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-100">
+                      {formatCurrency(p.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
