@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { WarehouseId } from '../types';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, UserPlus, Check, X } from 'lucide-react';
 
 export const InboundPurchases: React.FC = () => {
   const {
@@ -11,6 +11,7 @@ export const InboundPurchases: React.FC = () => {
     products,
     suppliers,
     addInboundShipment,
+    addSupplier,
     formatCurrency,
     t,
     lang,
@@ -25,7 +26,16 @@ export const InboundPurchases: React.FC = () => {
   const [targetWarehouse, setTargetWarehouse] = useState<WarehouseId>('main');
   const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentStatus, setPaymentStatus] = useState<'Unpaid' | 'Partial' | 'Paid'>('Unpaid');
+  const [partialCash, setPartialCash] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
+
+  // Quick Supplier Add inside Inbound
+  const [isQuickSupplierOpen, setIsQuickSupplierOpen] = useState(false);
+  const [newSupName, setNewSupName] = useState('');
+  const [newSupNameAr, setNewSupNameAr] = useState('');
+  const [newSupContact, setNewSupContact] = useState('');
+  const [newSupPhone, setNewSupPhone] = useState('');
+  const [newSupBalance, setNewSupBalance] = useState<number>(0);
 
   // Table filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -33,16 +43,61 @@ export const InboundPurchases: React.FC = () => {
 
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
   const selectedProduct = products.find(p => p.id === productId);
+  const totalCost = quantity * unitCost;
 
   const handleProductSelect = (id: string) => {
     setProductId(id);
     const p = products.find(prod => prod.id === id);
-    if (p) setUnitCost(p.unitCost);
+    if (p) {
+      setUnitCost(p.unitCost);
+      if (paymentStatus === 'Partial') {
+        setPartialCash(Math.round((quantity * p.unitCost) * 0.5));
+      }
+    }
+  };
+
+  const handlePaymentStatusChange = (status: 'Unpaid' | 'Partial' | 'Paid') => {
+    setPaymentStatus(status);
+    if (status === 'Partial') {
+      if (partialCash <= 0 || partialCash > totalCost) {
+        setPartialCash(Math.round(totalCost * 0.5));
+      }
+    }
+  };
+
+  const handleQuickSupplierSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSupName.trim()) return;
+
+    const created = addSupplier({
+      name: newSupName,
+      nameAr: newSupNameAr,
+      contact: newSupContact,
+      phone: newSupPhone,
+      initialBalance: newSupBalance,
+    });
+
+    setSupplierId(created.id);
+    setNewSupName('');
+    setNewSupNameAr('');
+    setNewSupContact('');
+    setNewSupPhone('');
+    setNewSupBalance(0);
+    setIsQuickSupplierOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSupplier || !selectedProduct) return;
+
+    let cashAmount = 0;
+    if (paymentStatus === 'Paid') {
+      cashAmount = totalCost;
+    } else if (paymentStatus === 'Partial') {
+      cashAmount = Math.min(totalCost, Math.max(0, Number(partialCash) || 0));
+    } else {
+      cashAmount = 0;
+    }
 
     addInboundShipment({
       supplierId: selectedSupplier.id,
@@ -55,6 +110,7 @@ export const InboundPurchases: React.FC = () => {
       targetWarehouse,
       purchaseDate,
       paymentStatus,
+      paidAmount: cashAmount,
       notes: notes.trim() || undefined,
     });
 
@@ -101,14 +157,113 @@ export const InboundPurchases: React.FC = () => {
             </h3>
             <span className="text-xs text-zinc-400 font-mono">
               {lang === 'ar' ? 'الإجمالي المتوقع:' : 'Expected Total:'}{' '}
-              <strong className="text-zinc-100 font-bold">{formatCurrency(quantity * unitCost)}</strong>
+              <strong className="text-zinc-100 font-bold">{formatCurrency(totalCost)}</strong>
             </span>
           </div>
 
+          {/* Quick Add Supplier Sub-Panel */}
+          {isQuickSupplierOpen && (
+            <div className="p-3 bg-zinc-950 border border-zinc-700/80 rounded-md space-y-3">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                <span className="text-xs font-semibold text-zinc-200 inline-flex items-center gap-1.5">
+                  <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                  {t.addSupplierModalTitle || (lang === 'ar' ? 'إضافة مورد / تاجر جديد سريعاً' : 'Quick Add Supplier')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickSupplierOpen(false)}
+                  className="text-zinc-400 hover:text-zinc-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">
+                    {t.supplierNameEnLabel} *
+                  </label>
+                  <input
+                    type="text"
+                    value={newSupName}
+                    onChange={e => setNewSupName(e.target.value)}
+                    placeholder="e.g. Nile Tech Supplies"
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">
+                    {t.supplierNameArLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={newSupNameAr}
+                    onChange={e => setNewSupNameAr(e.target.value)}
+                    placeholder="مثال: شركة النيل للتوريدات"
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">
+                    {t.phoneLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={newSupPhone}
+                    onChange={e => setNewSupPhone(e.target.value)}
+                    placeholder="+20 10 1234 5678"
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">
+                    {t.initialBalanceLabel} ({t.currency})
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newSupBalance}
+                    onChange={e => setNewSupBalance(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickSupplierOpen(false)}
+                  className="px-2.5 py-1 text-xs border border-zinc-700 rounded text-zinc-400 hover:text-zinc-200"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleQuickSupplierSubmit}
+                  className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-emerald-500 text-zinc-950 hover:bg-emerald-400 rounded"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'حفظ واختيار المورد' : 'Save & Select Supplier'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {/* Supplier */}
+            {/* Supplier Selector */}
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.supplierNameLabel}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-zinc-300">{t.supplierNameLabel}</label>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickSupplierOpen(!isQuickSupplierOpen)}
+                  className="text-[11px] text-zinc-400 hover:text-zinc-100 inline-flex items-center gap-0.5 font-medium underline"
+                >
+                  <Plus className="w-3 h-3" />
+                  {t.newSupplierQuickBtn || (lang === 'ar' ? '+ مورد جديد' : '+ New Supplier')}
+                </button>
+              </div>
               <select
                 value={supplierId}
                 onChange={e => setSupplierId(e.target.value)}
@@ -117,7 +272,7 @@ export const InboundPurchases: React.FC = () => {
               >
                 {suppliers.map(s => (
                   <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
-                    {lang === 'ar' ? s.nameAr : s.name}
+                    {lang === 'ar' ? s.nameAr : s.name} ({formatCurrency(s.currentBalance)})
                   </option>
                 ))}
               </select>
@@ -160,7 +315,13 @@ export const InboundPurchases: React.FC = () => {
                 type="number"
                 min="1"
                 value={quantity}
-                onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={e => {
+                  const qty = Math.max(1, parseInt(e.target.value) || 1);
+                  setQuantity(qty);
+                  if (paymentStatus === 'Partial') {
+                    setPartialCash(Math.min(qty * unitCost, partialCash));
+                  }
+                }}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               />
@@ -174,7 +335,13 @@ export const InboundPurchases: React.FC = () => {
                 min="0.01"
                 step="0.01"
                 value={unitCost}
-                onChange={e => setUnitCost(Math.max(0.01, parseFloat(e.target.value) || 0))}
+                onChange={e => {
+                  const cost = Math.max(0.01, parseFloat(e.target.value) || 0);
+                  setUnitCost(cost);
+                  if (paymentStatus === 'Partial') {
+                    setPartialCash(Math.min(quantity * cost, partialCash));
+                  }
+                }}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               />
@@ -185,15 +352,88 @@ export const InboundPurchases: React.FC = () => {
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.paymentStatusLabel}</label>
               <select
                 value={paymentStatus}
-                onChange={e => setPaymentStatus(e.target.value as 'Unpaid' | 'Partial' | 'Paid')}
+                onChange={e => handlePaymentStatusChange(e.target.value as 'Unpaid' | 'Partial' | 'Paid')}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 <option value="Unpaid" className="bg-zinc-900 text-zinc-100">{t.unpaid}</option>
-                <option value="Paid" className="bg-zinc-900 text-zinc-100">{t.paid}</option>
                 <option value="Partial" className="bg-zinc-900 text-zinc-100">{t.partial}</option>
+                <option value="Paid" className="bg-zinc-900 text-zinc-100">{t.paid}</option>
               </select>
             </div>
           </div>
+
+          {/* Partial Cash Input & Financial Breakdown */}
+          {paymentStatus === 'Partial' && (
+            <div className="p-3 bg-zinc-950/80 border border-amber-900/40 rounded-lg space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-amber-300">
+                    {t.partialCashAmountLabel} ({t.currency}) *
+                  </label>
+                  <p className="text-[11px] text-zinc-400">
+                    {lang === 'ar'
+                      ? 'حدد المبلغ النقدي المسدد فعلياً للمورد الآن والباقي يضاف آلياً لحسابه'
+                      : 'Specify the cash amount paid upfront now; remaining is added to merchant debt'}
+                  </p>
+                </div>
+
+                {/* Quick percentage buttons */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-zinc-500">{lang === 'ar' ? 'نسب سريعة:' : 'Quick:'}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPartialCash(Math.round(totalCost * 0.25))}
+                    className="px-2 py-0.5 text-[11px] font-mono rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
+                  >
+                    25%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPartialCash(Math.round(totalCost * 0.5))}
+                    className="px-2 py-0.5 text-[11px] font-mono rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
+                  >
+                    50%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPartialCash(Math.round(totalCost * 0.75))}
+                    className="px-2 py-0.5 text-[11px] font-mono rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
+                  >
+                    75%
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div>
+                  <input
+                    type="number"
+                    min="0"
+                    max={totalCost}
+                    step="1"
+                    value={partialCash}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setPartialCash(Math.max(0, Math.min(totalCost, val)));
+                    }}
+                    className="w-full text-xs font-mono font-medium rounded-md border border-amber-600/50 bg-zinc-900 px-2.5 py-1.5 text-amber-200 focus:outline-hidden focus:ring-1 focus:ring-amber-500"
+                    placeholder="e.g. 5000"
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-2 rounded bg-zinc-900 border border-zinc-800 text-xs">
+                  <span className="text-zinc-400">{lang === 'ar' ? 'المدفوع نقداً:' : 'Cash Paid:'}</span>
+                  <span className="font-mono font-bold text-emerald-400">{formatCurrency(partialCash)}</span>
+                </div>
+
+                <div className="flex items-center justify-between p-2 rounded bg-zinc-900 border border-zinc-800 text-xs">
+                  <span className="text-zinc-400">{t.remainingBalanceDueLabel || (lang === 'ar' ? 'المتبقي كدين:' : 'Remaining Due:')}</span>
+                  <span className="font-mono font-bold text-rose-400">{formatCurrency(Math.max(0, totalCost - partialCash))}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
             <button
@@ -263,43 +503,75 @@ export const InboundPurchases: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredShipments.map(item => (
-                  <tr key={item.id} className="hover:bg-zinc-800/40 transition-colors">
-                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{item.reference}</td>
-                    <td className="px-3 py-2.5 text-zinc-400">{item.purchaseDate}</td>
-                    <td className="px-3 py-2.5 font-medium text-zinc-200">{item.supplierName}</td>
-                    <td className="px-3 py-2.5">
-                      <span className="font-medium text-zinc-200">{item.productName}</span>
-                      <span className="block text-[11px] text-zinc-500">{item.sku}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">
-                      {item.quantity}
-                    </td>
-                    <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-100">
-                      {formatCurrency(item.totalCost)}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                        item.targetWarehouse === 'noon'
-                          ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
-                          : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
-                      }`}>
-                        {item.targetWarehouse === 'noon' ? 'Noon FBN' : 'Main'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                        item.paymentStatus === 'Paid'
-                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
-                          : item.paymentStatus === 'Partial'
-                          ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
-                          : 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
-                      }`}>
-                        {item.paymentStatus}
-                      </span>
-                    </td>
-                  </tr>
-                ))
+                filteredShipments.map(item => {
+                  const paid = item.paidAmount !== undefined
+                    ? item.paidAmount
+                    : item.paymentStatus === 'Paid'
+                    ? item.totalCost
+                    : item.paymentStatus === 'Partial'
+                    ? item.totalCost * 0.5
+                    : 0;
+                  const remaining = Math.max(0, item.totalCost - paid);
+
+                  return (
+                    <tr key={item.id} className="hover:bg-zinc-800/40 transition-colors">
+                      <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{item.reference}</td>
+                      <td className="px-3 py-2.5 text-zinc-400">{item.purchaseDate}</td>
+                      <td className="px-3 py-2.5 font-medium text-zinc-200">{item.supplierName}</td>
+                      <td className="px-3 py-2.5">
+                        <span className="font-medium text-zinc-200">{item.productName}</span>
+                        <span className="block text-[11px] text-zinc-500">{item.sku}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">
+                        {item.quantity}
+                      </td>
+                      <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-100">
+                        {formatCurrency(item.totalCost)}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                          item.targetWarehouse === 'noon'
+                            ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
+                            : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
+                        }`}>
+                          {item.targetWarehouse === 'noon' ? 'Noon FBN' : 'Main'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {item.paymentStatus === 'Paid' ? (
+                          <div className="flex flex-col items-start">
+                            <span className="inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">
+                              {t.paid}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                              {lang === 'ar' ? 'كاش: ' : 'Paid: '}{formatCurrency(paid)}
+                            </span>
+                          </div>
+                        ) : item.paymentStatus === 'Partial' ? (
+                          <div className="flex flex-col items-start">
+                            <span className="inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-950/60 text-amber-300 border border-amber-800/60">
+                              {t.partial}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                              <span className="text-zinc-200">{formatCurrency(paid)}</span>
+                              <span className="text-zinc-500"> / </span>
+                              <span className="text-rose-300">{formatCurrency(remaining)}</span>
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start">
+                            <span className="inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium bg-rose-950/60 text-rose-300 border border-rose-800/60">
+                              {t.unpaid}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                              {lang === 'ar' ? 'آجل: ' : 'Due: '}{formatCurrency(remaining)}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

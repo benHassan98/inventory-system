@@ -183,6 +183,7 @@ export const INITIAL_INBOUND_SHIPMENTS: InboundShipment[] = [
     targetWarehouse: 'main',
     purchaseDate: '2026-09-14',
     paymentStatus: 'Paid',
+    paidAmount: 32500,
     notes: 'Official regional stock with 2-year warranty',
   },
   {
@@ -199,6 +200,7 @@ export const INITIAL_INBOUND_SHIPMENTS: InboundShipment[] = [
     targetWarehouse: 'noon',
     purchaseDate: '2026-09-16',
     paymentStatus: 'Partial',
+    paidAmount: 8400,
     notes: 'Direct FBN cross-dock shipment to 6th of October',
   },
   {
@@ -215,6 +217,7 @@ export const INITIAL_INBOUND_SHIPMENTS: InboundShipment[] = [
     targetWarehouse: 'main',
     purchaseDate: '2026-09-18',
     paymentStatus: 'Unpaid',
+    paidAmount: 0,
     notes: 'New batch with tamper-evident seal',
   },
   {
@@ -231,6 +234,7 @@ export const INITIAL_INBOUND_SHIPMENTS: InboundShipment[] = [
     targetWarehouse: 'main',
     purchaseDate: '2026-09-19',
     paymentStatus: 'Unpaid',
+    paidAmount: 0,
     notes: 'Pre-shrunk 280 GSM premium cotton',
   },
 ];

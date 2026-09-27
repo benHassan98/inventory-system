@@ -71,6 +71,13 @@ interface AppContextType {
   netProfit: number;
   noonReceivablesBalance: number;
   supplierPayablesBalance: number;
+  addSupplier: (data: {
+    name: string;
+    nameAr?: string;
+    contact?: string;
+    phone?: string;
+    initialBalance?: number;
+  }) => Supplier;
   addNoonSettlement: (payout: Omit<NoonSettlement, 'id' | 'reference'>) => void;
   addSupplierPayment: (payment: Omit<SupplierPayment, 'id' | 'reference'>) => void;
 
@@ -251,11 +258,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addInboundShipment = (data: Omit<InboundShipment, 'id' | 'reference' | 'totalCost'>) => {
     const totalCost = data.quantity * data.unitCost;
     const refNum = `PO-${new Date().getFullYear()}-${String(inboundShipments.length + 85).padStart(3, '0')}`;
+    
+    let paidAmount = 0;
+    let addedBalance = totalCost;
+
+    if (data.paymentStatus === 'Paid') {
+      paidAmount = totalCost;
+      addedBalance = 0;
+    } else if (data.paymentStatus === 'Partial') {
+      const requestedPaid = Number(data.paidAmount);
+      paidAmount = isNaN(requestedPaid) ? 0 : Math.min(totalCost, Math.max(0, requestedPaid));
+      addedBalance = Math.max(0, totalCost - paidAmount);
+    } else {
+      paidAmount = 0;
+      addedBalance = totalCost;
+    }
+
     const newShipment: InboundShipment = {
       ...data,
       id: `inb-${Date.now()}`,
       reference: refNum,
       totalCost,
+      paidAmount,
     };
 
     // 1. Update Product Stock in the target warehouse
@@ -277,17 +301,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSuppliers(prevSuppliers =>
       prevSuppliers.map(sup => {
         if (sup.id === data.supplierId || sup.name === data.supplierName) {
-          let paidAmount = 0;
-          let addedBalance = 0;
-          if (data.paymentStatus === 'Paid') {
-            paidAmount = totalCost;
-          } else if (data.paymentStatus === 'Partial') {
-            paidAmount = totalCost * 0.5;
-            addedBalance = totalCost * 0.5;
-          } else {
-            addedBalance = totalCost;
-          }
-
           return {
             ...sup,
             totalPurchased: sup.totalPurchased + totalCost,
@@ -298,6 +311,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return sup;
       })
     );
+
+    // 3. If upfront cash was paid (Partial or Paid), record it in the supplier payments log
+    if (paidAmount > 0) {
+      const payRef = `PAY-ADV-${String(supplierPayments.length + 50).padStart(3, '0')}`;
+      const advancePayment: SupplierPayment = {
+        id: `pay-${Date.now()}`,
+        reference: payRef,
+        supplierId: data.supplierId,
+        supplierName: data.supplierName,
+        amount: paidAmount,
+        paymentMethod: 'Cash / Direct Advance',
+        date: data.purchaseDate,
+        notes: `Advance cash payment for inbound PO ${refNum}`,
+      };
+      setSupplierPayments(prev => [advancePayment, ...prev]);
+    }
 
     setInboundShipments(prev => [newShipment, ...prev]);
     addToast('success', t.confirmed, t.inboundSuccess);
@@ -471,6 +500,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addToast('success', t.confirmed, t.paymentSuccess);
   };
 
+  // Add Supplier Logic
+  const addSupplier = (data: {
+    name: string;
+    nameAr?: string;
+    contact?: string;
+    phone?: string;
+    initialBalance?: number;
+  }): Supplier => {
+    const initialBal = Math.max(0, Number(data.initialBalance) || 0);
+    const newSupplier: Supplier = {
+      id: `sup-${Date.now()}`,
+      name: data.name.trim(),
+      nameAr: (data.nameAr && data.nameAr.trim()) ? data.nameAr.trim() : data.name.trim(),
+      contact: data.contact?.trim() || '',
+      phone: data.phone?.trim() || '',
+      totalPurchased: initialBal,
+      totalPaid: 0,
+      currentBalance: initialBal,
+    };
+
+    setSuppliers(prev => [newSupplier, ...prev]);
+    addToast('success', t.confirmed, t.supplierAddedSuccess || 'Supplier registered successfully!');
+    return newSupplier;
+  };
+
   // Calculated Aggregate Values
   const mainWarehouseStockCount = products.reduce((acc, p) => acc + p.stockMain, 0);
   const noonWarehouseStockCount = products.reduce((acc, p) => acc + p.stockNoon, 0);
@@ -543,6 +597,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         netProfit,
         noonReceivablesBalance,
         supplierPayablesBalance,
+        addSupplier,
         addNoonSettlement,
         addSupplierPayment,
         toasts,

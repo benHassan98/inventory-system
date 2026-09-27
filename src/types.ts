@@ -38,6 +38,7 @@ export interface InboundShipment {
   targetWarehouse: WarehouseId;
   purchaseDate: string;
   paymentStatus: 'Unpaid' | 'Partial' | 'Paid';
+  paidAmount?: number;
   notes?: string;
 }
 

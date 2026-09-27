@@ -66,6 +66,7 @@ export const TRANSLATIONS = {
     inboundHistory: 'Recent Inbound Shipments',
     supplierNameLabel: 'Supplier Name',
     selectSupplier: 'Select Supplier...',
+    newSupplierQuickBtn: '+ New Supplier',
     productNameLabel: 'Product / SKU',
     selectProduct: 'Select Product...',
     targetWarehouseLabel: 'Destination Warehouse',
@@ -74,6 +75,8 @@ export const TRANSLATIONS = {
     unpaid: 'Unpaid (Add to Supplier Balance)',
     partial: 'Partial Payment',
     paid: 'Fully Paid (Cash/Bank)',
+    partialCashAmountLabel: 'Cash Amount Paid Now',
+    remainingBalanceDueLabel: 'Remaining Balance (Owed to Supplier)',
     inboundSuccess: 'Inbound stock recorded successfully! Stock and supplier ledger updated.',
 
     // Multi-Warehouse & Transfers
@@ -135,6 +138,14 @@ export const TRANSLATIONS = {
 
     supplierLedgerTitle: 'Supplier Accounts Payable (حسابات التجار)',
     supplierLedgerDesc: 'Tracks total merchandise purchased on credit and remaining balances owed to suppliers.',
+    addSupplierBtn: '+ Add New Supplier',
+    addSupplierModalTitle: 'Register New Supplier / Merchant',
+    supplierNameEnLabel: 'Supplier / Business Name (English)',
+    supplierNameArLabel: 'Supplier Name (Arabic)',
+    contactPersonLabel: 'Contact Person / Representative',
+    phoneLabel: 'Phone / WhatsApp',
+    initialBalanceLabel: 'Opening Balance Owed (Existing Debt)',
+    supplierAddedSuccess: 'New supplier added successfully!',
     recordSupplierPaymentBtn: '+ Record Supplier Payment',
     supplierBalancesTable: 'Merchants Outstanding Balances',
     totalPurchased: 'Total Purchased',
@@ -217,6 +228,7 @@ export const TRANSLATIONS = {
     inboundHistory: 'سجل الشحنات والمشتريات الواردة',
     supplierNameLabel: 'اسم المورد / التاجر',
     selectSupplier: 'اختر المورد...',
+    newSupplierQuickBtn: '+ مورد جديد',
     productNameLabel: 'المنتج / الباركود',
     selectProduct: 'اختر المنتج...',
     targetWarehouseLabel: 'المستودع المستلم',
@@ -225,6 +237,8 @@ export const TRANSLATIONS = {
     unpaid: 'آجل (يضاف لحساب التاجر المستحق)',
     partial: 'دفعة جزئية',
     paid: 'مسدد نقداً / بنكياً بالكامل',
+    partialCashAmountLabel: 'المبلغ المدفوع مقدماً / نقداً',
+    remainingBalanceDueLabel: 'المتبقي كدين مستحق للمورد',
     inboundSuccess: 'تم تسجيل البضاعة الواردة بنجاح! تم تحديث رصيد المخزن وحساب المورد.',
 
     // Multi-Warehouse & Transfers
@@ -286,6 +300,14 @@ export const TRANSLATIONS = {
 
     supplierLedgerTitle: 'حسابات التجار والموردين (الذمم الدائنة)',
     supplierLedgerDesc: 'تتبع قيمة البضائع المشتراة بالأجل، والمبالغ المسددة، والمتبقي سداده لكل تاجر ومورد.',
+    addSupplierBtn: '+ إضافة مورد جديد',
+    addSupplierModalTitle: 'تسجيل مورد / تاجر جديد',
+    supplierNameEnLabel: 'اسم المورد / الشركة (بالإنجليزية)',
+    supplierNameArLabel: 'اسم المورد (بالعربية)',
+    contactPersonLabel: 'المسؤول / جهة الاتصال',
+    phoneLabel: 'الهاتف / الواتساب',
+    initialBalanceLabel: 'الرصيد الافتتاحي المستحق (دين سابق إن وجد)',
+    supplierAddedSuccess: 'تم تسجيل المورد الجديد بنجاح!',
     recordSupplierPaymentBtn: '+ تسجيل سداد دفعة لمورد',
     supplierBalancesTable: 'أرصدة الموردين المستحقة',
     totalPurchased: 'إجمالي المشتريات',

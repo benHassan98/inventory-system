@@ -7,6 +7,7 @@ import {
   HandCoins,
   Receipt,
   Plus,
+  UserPlus,
 } from 'lucide-react';
 
 export const FinancialsLedgers: React.FC = () => {
@@ -21,6 +22,7 @@ export const FinancialsLedgers: React.FC = () => {
     netProfit,
     noonReceivablesBalance,
     supplierPayablesBalance,
+    addSupplier,
     addNoonSettlement,
     addSupplierPayment,
     formatCurrency,
@@ -43,6 +45,14 @@ export const FinancialsLedgers: React.FC = () => {
   const [supplierPaymentAmount, setSupplierPaymentAmount] = useState<number>(1000);
   const [supplierPaymentMethod, setSupplierPaymentMethod] = useState<string>('InstaPay / Bank Transfer');
   const [supplierPaymentDate, setSupplierPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  // Add Supplier Form
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
+  const [newSupName, setNewSupName] = useState('');
+  const [newSupNameAr, setNewSupNameAr] = useState('');
+  const [newSupContact, setNewSupContact] = useState('');
+  const [newSupPhone, setNewSupPhone] = useState('');
+  const [newSupBalance, setNewSupBalance] = useState<number>(0);
 
   // P&L Calculations
   const totalNoonGrossSales = sales
@@ -91,6 +101,27 @@ export const FinancialsLedgers: React.FC = () => {
     setIsSupplierFormOpen(false);
   };
 
+  const handleAddSupplierSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSupName.trim()) return;
+
+    const created = addSupplier({
+      name: newSupName,
+      nameAr: newSupNameAr,
+      contact: newSupContact,
+      phone: newSupPhone,
+      initialBalance: newSupBalance,
+    });
+
+    setSelectedSupplierId(created.id);
+    setNewSupName('');
+    setNewSupNameAr('');
+    setNewSupContact('');
+    setNewSupPhone('');
+    setNewSupBalance(0);
+    setIsAddSupplierOpen(false);
+  };
+
   return (
     <div className="space-y-5">
       {/* 1. Header */}
@@ -111,13 +142,28 @@ export const FinancialsLedgers: React.FC = () => {
         )}
 
         {activeTab === 'suppliers' && (
-          <button
-            onClick={() => setIsSupplierFormOpen(!isSupplierFormOpen)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors self-start sm:self-auto shadow-xs"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{isSupplierFormOpen ? t.cancel : t.recordSupplierPaymentBtn}</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => {
+                setIsAddSupplierOpen(!isAddSupplierOpen);
+                if (isSupplierFormOpen) setIsSupplierFormOpen(false);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white rounded-md transition-colors shadow-xs"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{isAddSupplierOpen ? t.cancel : (t.addSupplierBtn || '+ Add Supplier')}</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsSupplierFormOpen(!isSupplierFormOpen);
+                if (isAddSupplierOpen) setIsAddSupplierOpen(false);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isSupplierFormOpen ? t.cancel : t.recordSupplierPaymentBtn}</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -340,7 +386,7 @@ export const FinancialsLedgers: React.FC = () => {
       {/* 5. SUPPLIER PAYABLES TAB */}
       {activeTab === 'suppliers' && (
         <div className="space-y-4">
-          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center justify-between">
+          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <span className="text-xs font-medium text-zinc-400 block">{t.kpiSupplierPayables}</span>
               <span className="text-xl font-bold text-rose-400 font-mono mt-1 block">
@@ -350,13 +396,114 @@ export const FinancialsLedgers: React.FC = () => {
                 {lang === 'ar' ? 'إجمالي الديون المستحقة للموردين' : 'Total due across all suppliers'}
               </span>
             </div>
-            <button
-              onClick={() => setIsSupplierFormOpen(!isSupplierFormOpen)}
-              className="px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md shadow-xs"
-            >
-              {isSupplierFormOpen ? t.cancel : t.recordSupplierPaymentBtn}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsAddSupplierOpen(!isAddSupplierOpen);
+                  if (isSupplierFormOpen) setIsSupplierFormOpen(false);
+                }}
+                className="px-3 py-1.5 text-xs font-semibold border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white rounded-md shadow-xs inline-flex items-center gap-1.5"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{isAddSupplierOpen ? t.cancel : (t.addSupplierBtn || '+ Add Supplier')}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsSupplierFormOpen(!isSupplierFormOpen);
+                  if (isAddSupplierOpen) setIsAddSupplierOpen(false);
+                }}
+                className="px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md shadow-xs inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{isSupplierFormOpen ? t.cancel : t.recordSupplierPaymentBtn}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Collapsible Add Supplier Form */}
+          {isAddSupplierOpen && (
+            <form onSubmit={handleAddSupplierSubmit} className="p-4 bg-zinc-900 border border-zinc-700 rounded-lg space-y-3">
+              <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2">
+                <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-1.5">
+                  <UserPlus className="w-4 h-4 text-emerald-400" />
+                  <span>{t.addSupplierModalTitle}</span>
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.supplierNameEnLabel} *</label>
+                  <input
+                    type="text"
+                    value={newSupName}
+                    onChange={e => setNewSupName(e.target.value)}
+                    placeholder="e.g. Cairo Textiles Co."
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.supplierNameArLabel}</label>
+                  <input
+                    type="text"
+                    value={newSupNameAr}
+                    onChange={e => setNewSupNameAr(e.target.value)}
+                    placeholder="مثال: شركة القاهرة للمنسوجات"
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.contactPersonLabel}</label>
+                  <input
+                    type="text"
+                    value={newSupContact}
+                    onChange={e => setNewSupContact(e.target.value)}
+                    placeholder="e.g. Mahmoud Hassan"
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.phoneLabel}</label>
+                  <input
+                    type="text"
+                    value={newSupPhone}
+                    onChange={e => setNewSupPhone(e.target.value)}
+                    placeholder="+20 10 9876 5432"
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                    {t.initialBalanceLabel} ({t.currency})
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newSupBalance}
+                    onChange={e => setNewSupBalance(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-zinc-800/80">
+                <button
+                  type="button"
+                  onClick={() => setIsAddSupplierOpen(false)}
+                  className="px-3 py-1.5 text-xs border border-zinc-700 rounded-md text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 text-xs font-semibold bg-emerald-500 text-zinc-950 rounded-md hover:bg-emerald-400 transition-colors"
+                >
+                  {t.submit}
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* Collapsible Supplier Payment Form */}
           {isSupplierFormOpen && (
