@@ -47,6 +47,18 @@ interface AppContextType {
   lowStockProducts: Product[];
   mainWarehouseStockCount: number;
   noonWarehouseStockCount: number;
+  addProduct: (data: {
+    sku?: string;
+    name: string;
+    nameAr?: string;
+    category?: string;
+    categoryAr?: string;
+    unitCost: number;
+    sellingPrice: number;
+    stockMain?: number;
+    stockNoon?: number;
+    minStockAlert?: number;
+  }) => Product;
 
   // Inbound & Purchases
   inboundShipments: InboundShipment[];
@@ -525,6 +537,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newSupplier;
   };
 
+  // Add Product Logic
+  const addProduct = (data: {
+    sku?: string;
+    name: string;
+    nameAr?: string;
+    category?: string;
+    categoryAr?: string;
+    unitCost: number;
+    sellingPrice: number;
+    stockMain?: number;
+    stockNoon?: number;
+    minStockAlert?: number;
+  }): Product => {
+    const cleanSku = data.sku?.trim() || `SKU-${Date.now().toString().slice(-5)}`;
+    const newProduct: Product = {
+      id: `prod-${Date.now()}`,
+      sku: cleanSku.toUpperCase(),
+      name: data.name.trim(),
+      nameAr: (data.nameAr && data.nameAr.trim()) ? data.nameAr.trim() : data.name.trim(),
+      category: data.category?.trim() || 'General',
+      categoryAr: data.categoryAr?.trim() || (lang === 'ar' ? 'عام' : 'General'),
+      unitCost: Math.max(0, Number(data.unitCost) || 0),
+      sellingPrice: Math.max(0, Number(data.sellingPrice) || 0),
+      stockMain: Math.max(0, Number(data.stockMain) || 0),
+      stockNoon: Math.max(0, Number(data.stockNoon) || 0),
+      minStockAlert: Math.max(1, Number(data.minStockAlert) || 10),
+    };
+
+    setProducts(prev => [newProduct, ...prev]);
+    addToast('success', t.confirmed, t.productAddedSuccess || 'Product added successfully to inventory!');
+    return newProduct;
+  };
+
   // Calculated Aggregate Values
   const mainWarehouseStockCount = products.reduce((acc, p) => acc + p.stockMain, 0);
   const noonWarehouseStockCount = products.reduce((acc, p) => acc + p.stockNoon, 0);
@@ -578,6 +623,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         formatCurrency,
         warehouses,
         products,
+        addProduct,
         lowStockProducts,
         mainWarehouseStockCount,
         noonWarehouseStockCount,

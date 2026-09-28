@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { WarehouseId } from '../types';
-import { Search, Plus, UserPlus, Check, X } from 'lucide-react';
+import { Search, Plus, UserPlus, PackagePlus, Check, X } from 'lucide-react';
 
 export const InboundPurchases: React.FC = () => {
   const {
@@ -12,6 +12,7 @@ export const InboundPurchases: React.FC = () => {
     suppliers,
     addInboundShipment,
     addSupplier,
+    addProduct,
     formatCurrency,
     t,
     lang,
@@ -36,6 +37,16 @@ export const InboundPurchases: React.FC = () => {
   const [newSupContact, setNewSupContact] = useState('');
   const [newSupPhone, setNewSupPhone] = useState('');
   const [newSupBalance, setNewSupBalance] = useState<number>(0);
+
+  // Quick Product Add inside Inbound
+  const [isQuickProductOpen, setIsQuickProductOpen] = useState(false);
+  const [newProdSku, setNewProdSku] = useState('');
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdNameAr, setNewProdNameAr] = useState('');
+  const [newProdCategory, setNewProdCategory] = useState('Electronics');
+  const [newProdUnitCost, setNewProdUnitCost] = useState<number>(100);
+  const [newProdSellingPrice, setNewProdSellingPrice] = useState<number>(180);
+  const [newProdMinAlert, setNewProdMinAlert] = useState<number>(10);
 
   // Table filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -84,6 +95,37 @@ export const InboundPurchases: React.FC = () => {
     setNewSupPhone('');
     setNewSupBalance(0);
     setIsQuickSupplierOpen(false);
+  };
+
+  const handleQuickProductSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProdName.trim()) return;
+
+    const created = addProduct({
+      sku: newProdSku,
+      name: newProdName,
+      nameAr: newProdNameAr,
+      category: newProdCategory,
+      unitCost: Number(newProdUnitCost),
+      sellingPrice: Number(newProdSellingPrice),
+      stockMain: 0,
+      stockNoon: 0,
+      minStockAlert: Number(newProdMinAlert),
+    });
+
+    setProductId(created.id);
+    setUnitCost(created.unitCost);
+    if (paymentStatus === 'Partial') {
+      setPartialCash(Math.round((quantity * created.unitCost) * 0.5));
+    }
+    setNewProdSku('');
+    setNewProdName('');
+    setNewProdNameAr('');
+    setNewProdCategory('Electronics');
+    setNewProdUnitCost(100);
+    setNewProdSellingPrice(180);
+    setNewProdMinAlert(10);
+    setIsQuickProductOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -250,6 +292,116 @@ export const InboundPurchases: React.FC = () => {
             </div>
           )}
 
+          {/* Quick Add Product Sub-Panel */}
+          {isQuickProductOpen && (
+            <div className="p-3 bg-zinc-950 border border-zinc-700/80 rounded-md space-y-3">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                <span className="text-xs font-semibold text-zinc-200 inline-flex items-center gap-1.5">
+                  <PackagePlus className="w-3.5 h-3.5 text-emerald-400" />
+                  {t.addProductModalTitle || (lang === 'ar' ? 'إضافة منتج جديد سريعاً' : 'Quick Add Product')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickProductOpen(false)}
+                  className="text-zinc-400 hover:text-zinc-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productSkuLabel} *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ELC-SPK-BT5"
+                    value={newProdSku}
+                    onChange={e => setNewProdSku(e.target.value)}
+                    className="w-full text-xs font-mono uppercase rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productNameEnLabel} *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bluetooth Speaker 20W"
+                    value={newProdName}
+                    onChange={e => setNewProdName(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productNameArLabel}</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: سماعة بلوتوث لاسلكية"
+                    value={newProdNameAr}
+                    onChange={e => setNewProdNameAr(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.categoryLabel}</label>
+                  <select
+                    value={newProdCategory}
+                    onChange={e => setNewProdCategory(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  >
+                    <option value="Electronics">Electronics</option>
+                    <option value="Fashion">Fashion</option>
+                    <option value="Perfumes">Perfumes</option>
+                    <option value="Home & Living">Home & Living</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.unitCost} ({t.currency}) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newProdUnitCost}
+                    onChange={e => setNewProdUnitCost(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full text-xs font-mono rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.sellingPrice} ({t.currency}) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={newProdSellingPrice}
+                    onChange={e => setNewProdSellingPrice(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full text-xs font-mono rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickProductOpen(false)}
+                  className="px-2.5 py-1 text-xs border border-zinc-700 rounded text-zinc-400 hover:text-zinc-200"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleQuickProductSubmit}
+                  className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-emerald-500 text-zinc-950 hover:bg-emerald-400 rounded"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'حفظ واختيار المنتج' : 'Save & Select Product'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* Supplier Selector */}
             <div>
@@ -257,7 +409,10 @@ export const InboundPurchases: React.FC = () => {
                 <label className="block text-xs font-medium text-zinc-300">{t.supplierNameLabel}</label>
                 <button
                   type="button"
-                  onClick={() => setIsQuickSupplierOpen(!isQuickSupplierOpen)}
+                  onClick={() => {
+                    setIsQuickSupplierOpen(!isQuickSupplierOpen);
+                    if (isQuickProductOpen) setIsQuickProductOpen(false);
+                  }}
                   className="text-[11px] text-zinc-400 hover:text-zinc-100 inline-flex items-center gap-0.5 font-medium underline"
                 >
                   <Plus className="w-3 h-3" />
@@ -278,9 +433,22 @@ export const InboundPurchases: React.FC = () => {
               </select>
             </div>
 
-            {/* Product */}
+            {/* Product Selector */}
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productNameLabel}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-zinc-300">{t.productNameLabel}</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsQuickProductOpen(!isQuickProductOpen);
+                    if (isQuickSupplierOpen) setIsQuickSupplierOpen(false);
+                  }}
+                  className="text-[11px] text-zinc-400 hover:text-zinc-100 inline-flex items-center gap-0.5 font-medium underline"
+                >
+                  <Plus className="w-3 h-3" />
+                  {t.newProductQuickBtn || (lang === 'ar' ? '+ منتج جديد' : '+ New Product')}
+                </button>
+              </div>
               <select
                 value={productId}
                 onChange={e => handleProductSelect(e.target.value)}

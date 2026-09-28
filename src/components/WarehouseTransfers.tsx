@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { WarehouseId } from '../types';
-import { ArrowRightLeft, Search, AlertTriangle, Building2, Store } from 'lucide-react';
+import { ArrowRightLeft, Search, AlertTriangle, Building2, Store, PackagePlus, Plus, Check } from 'lucide-react';
 
 export const WarehouseTransfers: React.FC = () => {
   const {
@@ -12,11 +12,13 @@ export const WarehouseTransfers: React.FC = () => {
     mainWarehouseStockCount,
     noonWarehouseStockCount,
     addStockTransfer,
+    addProduct,
+    formatCurrency,
     t,
     lang,
   } = useApp();
 
-  // Form toggle & state
+  // Transfer Form toggle & state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [productId, setProductId] = useState<string>(products[0]?.id || '');
   const [sourceWarehouse, setSourceWarehouse] = useState<WarehouseId>('main');
@@ -26,6 +28,18 @@ export const WarehouseTransfers: React.FC = () => {
   const [transferDate, setTransferDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
+
+  // Add Product Form state
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [newSku, setNewSku] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newNameAr, setNewNameAr] = useState('');
+  const [newCategory, setNewCategory] = useState('Electronics');
+  const [newUnitCost, setNewUnitCost] = useState<number>(100);
+  const [newSellingPrice, setNewSellingPrice] = useState<number>(180);
+  const [newStockMain, setNewStockMain] = useState<number>(0);
+  const [newStockNoon, setNewStockNoon] = useState<number>(0);
+  const [newMinAlert, setNewMinAlert] = useState<number>(10);
 
   // Table search
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -42,6 +56,7 @@ export const WarehouseTransfers: React.FC = () => {
     setSourceWarehouse(defaultSource);
     setTargetWarehouse(defaultSource === 'main' ? 'noon' : 'main');
     setIsFormOpen(true);
+    setIsAddProductOpen(false);
     setErrorMsg('');
   };
 
@@ -49,6 +64,35 @@ export const WarehouseTransfers: React.FC = () => {
     setSourceWarehouse(src);
     setTargetWarehouse(src === 'main' ? 'noon' : 'main');
     setErrorMsg('');
+  };
+
+  const handleAddProductSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    const created = addProduct({
+      sku: newSku,
+      name: newName,
+      nameAr: newNameAr,
+      category: newCategory,
+      unitCost: Number(newUnitCost),
+      sellingPrice: Number(newSellingPrice),
+      stockMain: Number(newStockMain),
+      stockNoon: Number(newStockNoon),
+      minStockAlert: Number(newMinAlert),
+    });
+
+    setProductId(created.id);
+    setNewSku('');
+    setNewName('');
+    setNewNameAr('');
+    setNewCategory('Electronics');
+    setNewUnitCost(100);
+    setNewSellingPrice(180);
+    setNewStockMain(0);
+    setNewStockNoon(0);
+    setNewMinAlert(10);
+    setIsAddProductOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,16 +142,29 @@ export const WarehouseTransfers: React.FC = () => {
           <p className="text-xs text-zinc-400 mt-0.5">{t.warehousesSubtitle}</p>
         </div>
 
-        <button
-          onClick={() => {
-            setIsFormOpen(!isFormOpen);
-            setErrorMsg('');
-          }}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors self-start sm:self-auto shadow-xs"
-        >
-          <ArrowRightLeft className="w-3.5 h-3.5" />
-          <span>{isFormOpen ? t.cancel : t.transferStockBtn}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => {
+              setIsAddProductOpen(!isAddProductOpen);
+              if (isFormOpen) setIsFormOpen(false);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white rounded-md transition-colors shadow-xs"
+          >
+            <PackagePlus className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{isAddProductOpen ? t.cancel : (t.addProductBtn || '+ Add Product')}</span>
+          </button>
+          <button
+            onClick={() => {
+              setIsFormOpen(!isFormOpen);
+              if (isAddProductOpen) setIsAddProductOpen(false);
+              setErrorMsg('');
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-zinc-100 text-zinc-950 hover:bg-white rounded-md transition-colors shadow-xs"
+          >
+            <ArrowRightLeft className="w-3.5 h-3.5" />
+            <span>{isFormOpen ? t.cancel : t.transferStockBtn}</span>
+          </button>
+        </div>
       </div>
 
       {/* Warehouse Summary Cards */}
@@ -138,6 +195,159 @@ export const WarehouseTransfers: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Add Product Form */}
+      {isAddProductOpen && (
+        <form onSubmit={handleAddProductSubmit} className="p-4 bg-zinc-900 border border-zinc-700 rounded-lg space-y-4 shadow-sm">
+          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+            <h3 className="text-sm font-semibold text-zinc-100 flex items-center gap-1.5">
+              <PackagePlus className="w-4 h-4 text-emerald-400" />
+              <span>{t.addProductModalTitle}</span>
+            </h3>
+            <span className="text-xs text-zinc-400">
+              {lang === 'ar' ? 'إضافة صنف جديد لقاعدة بيانات المخزون' : 'Add new product SKU to master inventory'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* SKU */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productSkuLabel} *</label>
+              <input
+                type="text"
+                placeholder="e.g. ELC-SPK-BT5"
+                value={newSku}
+                onChange={e => setNewSku(e.target.value)}
+                className="w-full text-xs font-mono uppercase rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                required
+              />
+            </div>
+
+            {/* Name EN */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productNameEnLabel} *</label>
+              <input
+                type="text"
+                placeholder="e.g. Wireless Bluetooth Speaker 20W"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                required
+              />
+            </div>
+
+            {/* Name AR */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productNameArLabel}</label>
+              <input
+                type="text"
+                placeholder="مثال: مكبر صوت بلوتوث لاسلكي 20 واط"
+                value={newNameAr}
+                onChange={e => setNewNameAr(e.target.value)}
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.categoryLabel}</label>
+              <select
+                value={newCategory}
+                onChange={e => setNewCategory(e.target.value)}
+                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+              >
+                <option value="Electronics">Electronics (إلكترونيات)</option>
+                <option value="Fashion">Fashion (أزياء)</option>
+                <option value="Perfumes">Perfumes & Beauty (عطور وتجميل)</option>
+                <option value="Home & Living">Home & Kitchen (المنزل والمطبخ)</option>
+                <option value="Accessories">Accessories (إكسسوارات)</option>
+                <option value="General">General (عام)</option>
+              </select>
+            </div>
+
+            {/* Unit Cost */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.unitCost} ({t.currency}) *</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={newUnitCost}
+                onChange={e => setNewUnitCost(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                required
+              />
+            </div>
+
+            {/* Selling Price */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sellingPrice} ({t.currency}) *</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={newSellingPrice}
+                onChange={e => setNewSellingPrice(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                required
+              />
+            </div>
+
+            {/* Initial Main Stock */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.initialMainStockLabel}</label>
+              <input
+                type="number"
+                min="0"
+                value={newStockMain}
+                onChange={e => setNewStockMain(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+              />
+            </div>
+
+            {/* Initial Noon Stock */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.initialNoonStockLabel}</label>
+              <input
+                type="number"
+                min="0"
+                value={newStockNoon}
+                onChange={e => setNewStockNoon(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+              />
+            </div>
+
+            {/* Min Alert Threshold */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.minStockAlertLabel}</label>
+              <input
+                type="number"
+                min="1"
+                value={newMinAlert}
+                onChange={e => setNewMinAlert(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
+            <button
+              type="button"
+              onClick={() => setIsAddProductOpen(false)}
+              className="px-3 py-1.5 text-xs font-medium border border-zinc-700 rounded-md text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            >
+              {t.cancel}
+            </button>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold bg-emerald-500 text-zinc-950 rounded-md hover:bg-emerald-400 transition-colors"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>{lang === 'ar' ? 'حفظ المنتج في المخزون' : 'Save Product to Inventory'}</span>
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* 2. Transfer Form */}
       {isFormOpen && (
@@ -313,15 +523,20 @@ export const WarehouseTransfers: React.FC = () => {
                     <tr key={p.id} className="hover:bg-zinc-800/40 transition-colors">
                       <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{p.sku}</td>
                       <td className="px-3 py-2.5">
-                        <span className="font-medium text-zinc-200">
-                          {lang === 'ar' ? p.nameAr : p.name}
-                        </span>
-                        {isLow && (
-                          <span className="ms-2 inline-flex items-center gap-0.5 text-[10px] text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/60 font-medium">
-                            <AlertTriangle className="w-2.5 h-2.5" />
-                            {t.lowStockWarning}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-zinc-200">
+                            {lang === 'ar' ? p.nameAr : p.name}
                           </span>
-                        )}
+                          {isLow && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/60 font-medium">
+                              <AlertTriangle className="w-2.5 h-2.5" />
+                              {t.lowStockWarning}
+                            </span>
+                          )}
+                        </div>
+                        <span className="block text-[11px] text-zinc-500 mt-0.5">
+                          {p.category} • {lang === 'ar' ? 'التكلفة: ' : 'Cost: '}{formatCurrency(p.unitCost)} • {lang === 'ar' ? 'البيع: ' : 'Price: '}{formatCurrency(p.sellingPrice)}
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">{p.stockMain}</td>
                       <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">{p.stockNoon}</td>
