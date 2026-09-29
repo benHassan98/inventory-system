@@ -1,0 +1,41 @@
+{
+  "pages": {
+    "/global-error": [
+      "static/chunks/webpack-5d977284d6360d16.js",
+      "static/chunks/4bd1b696-0ee01b4d61f1c543.js",
+      "static/chunks/684-c102d9f7b5488851.js",
+      "static/chunks/main-app-fa82156728cafe24.js",
+      "static/chunks/app/global-error-81e512f35000c197.js"
+    ],
+    "/layout": [
+      "static/chunks/webpack-5d977284d6360d16.js",
+      "static/chunks/4bd1b696-0ee01b4d61f1c543.js",
+      "static/chunks/684-c102d9f7b5488851.js",
+      "static/chunks/main-app-fa82156728cafe24.js",
+      "static/css/522b17f8ecc131fa.css",
+      "static/chunks/app/layout-06931cabde9a8b1f.js"
+    ],
+    "/not-found": [
+      "static/chunks/webpack-5d977284d6360d16.js",
+      "static/chunks/4bd1b696-0ee01b4d61f1c543.js",
+      "static/chunks/684-c102d9f7b5488851.js",
+      "static/chunks/main-app-fa82156728cafe24.js",
+      "static/chunks/app/not-found-3a7ce19a2aae2425.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-5d977284d6360d16.js",
+      "static/chunks/4bd1b696-0ee01b4d61f1c543.js",
+      "static/chunks/684-c102d9f7b5488851.js",
+      "static/chunks/main-app-fa82156728cafe24.js",
+      "static/chunks/450-94ef35870e45bafb.js",
+      "static/chunks/app/page-6f190bdaacba65ae.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack-5d977284d6360d16.js",
+      "static/chunks/4bd1b696-0ee01b4d61f1c543.js",
+      "static/chunks/684-c102d9f7b5488851.js",
+      "static/chunks/main-app-fa82156728cafe24.js",
+      "static/chunks/app/_not-found/page-b72775331b0d468e.js"
+    ]
+  }
+}
