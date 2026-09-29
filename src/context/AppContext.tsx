@@ -15,7 +15,6 @@ import {
   CurrencyCode,
   NavigationTab,
   ToastMessage,
-  WarehouseId
 } from '../types';
 import {
   INITIAL_WAREHOUSES,
@@ -126,7 +125,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [lang, setLangState] = useState<Language>('ar');
 
   const currency: CurrencyCode = 'EGP';
-  const setCurrency = (_c: CurrencyCode) => {};
+  const setCurrency = (_c: CurrencyCode) => { };
 
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
 
@@ -204,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (isHydrated && typeof window !== 'undefined') {
       try {
         localStorage.setItem(`${STORAGE_KEY_PREFIX}lang`, lang);
-      } catch {}
+      } catch { }
     }
   }, [lang, isHydrated]);
 
@@ -217,70 +216,70 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}warehouses`, JSON.stringify(warehouses));
-    } catch {}
+    } catch { }
   }, [warehouses, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}mainWarehouse`, mainWarehouseId);
-    } catch {}
+    } catch { }
   }, [mainWarehouseId, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}products`, JSON.stringify(products));
-    } catch {}
+    } catch { }
   }, [products, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}suppliers`, JSON.stringify(suppliers));
-    } catch {}
+    } catch { }
   }, [suppliers, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}inbound`, JSON.stringify(inboundShipments));
-    } catch {}
+    } catch { }
   }, [inboundShipments, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}transfers`, JSON.stringify(transfers));
-    } catch {}
+    } catch { }
   }, [transfers, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}sales`, JSON.stringify(sales));
-    } catch {}
+    } catch { }
   }, [sales, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}returns`, JSON.stringify(returns));
-    } catch {}
+    } catch { }
   }, [returns, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}noonSettlements`, JSON.stringify(noonSettlements));
-    } catch {}
+    } catch { }
   }, [noonSettlements, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}supplierPayments`, JSON.stringify(supplierPayments));
-    } catch {}
+    } catch { }
   }, [supplierPayments, isHydrated]);
 
   // Translation lookup
@@ -384,7 +383,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addInboundShipment = (data: Omit<InboundShipment, 'id' | 'reference' | 'totalCost'>) => {
     const totalCost = data.quantity * data.unitCost;
     const refNum = `PO-${new Date().getFullYear()}-${String(inboundShipments.length + 85).padStart(3, '0')}`;
-    
+
     let paidAmount = 0;
     let addedBalance = totalCost;
 
