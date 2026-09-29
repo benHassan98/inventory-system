@@ -10,8 +10,11 @@ export const SalesReturns: React.FC = () => {
     products,
     sales,
     returns,
+    warehouses,
+    mainWarehouseId,
     addSale,
     addReturn,
+    getProductStock,
     formatCurrency,
     t,
     lang,
@@ -22,7 +25,7 @@ export const SalesReturns: React.FC = () => {
   // Sales Form State
   const [isSaleFormOpen, setIsSaleFormOpen] = useState(false);
   const [productId, setProductId] = useState<string>(products[0]?.id || '');
-  const [sourceWarehouse, setSourceWarehouse] = useState<WarehouseId>('noon');
+  const [sourceWarehouse, setSourceWarehouse] = useState<WarehouseId>(warehouses[0]?.id || 'noon');
   const [quantity, setQuantity] = useState<number>(1);
   const [sellingPrice, setSellingPrice] = useState<number>(products[0]?.sellingPrice || 100);
   const [saleDate, setSaleDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -34,7 +37,7 @@ export const SalesReturns: React.FC = () => {
   const [returnProductId, setReturnProductId] = useState<string>(products[0]?.id || '');
   const [returnQuantity, setReturnQuantity] = useState<number>(1);
   const [refundAmount, setRefundAmount] = useState<number>(products[0]?.sellingPrice || 100);
-  const [returnWarehouse, setReturnWarehouse] = useState<WarehouseId>('main');
+  const [returnWarehouse, setReturnWarehouse] = useState<WarehouseId>(mainWarehouseId || 'main');
   const [returnCondition, setReturnCondition] = useState<'Sellable' | 'Damaged'>('Sellable');
   const [returnReason, setReturnReason] = useState<string>('Customer changed mind');
 
@@ -43,9 +46,7 @@ export const SalesReturns: React.FC = () => {
 
   const selectedProduct = products.find(p => p.id === productId);
   const availableStock = selectedProduct
-    ? sourceWarehouse === 'main'
-      ? selectedProduct.stockMain
-      : selectedProduct.stockNoon
+    ? getProductStock(selectedProduct, sourceWarehouse)
     : 0;
 
   const handleProductChange = (id: string) => {
@@ -226,8 +227,14 @@ export const SalesReturns: React.FC = () => {
                 }}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
-                <option value="noon" className="bg-zinc-900 text-zinc-100">{t.channelNoon}</option>
-                <option value="main" className="bg-zinc-900 text-zinc-100">{t.channelDirect}</option>
+                {warehouses.map(wh => {
+                  const isMain = wh.id === mainWarehouseId || wh.isMain;
+                  return (
+                    <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
+                      {isMain ? '★ ' : ''}{lang === 'ar' ? wh.nameAr : wh.name} ({wh.code}){isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Main') : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -371,8 +378,14 @@ export const SalesReturns: React.FC = () => {
                 onChange={e => setReturnWarehouse(e.target.value as WarehouseId)}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
-                <option value="main" className="bg-zinc-900 text-zinc-100">{lang === 'ar' ? 'المستودع الرئيسي (Cairo)' : 'Main Warehouse'}</option>
-                <option value="noon" className="bg-zinc-900 text-zinc-100">Noon FBN</option>
+                {warehouses.map(wh => {
+                  const isMain = wh.id === mainWarehouseId || wh.isMain;
+                  return (
+                    <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
+                      {isMain ? '★ ' : ''}{lang === 'ar' ? wh.nameAr : wh.name} ({wh.code}){isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Main') : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -489,7 +502,10 @@ export const SalesReturns: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-zinc-400">
-                      {ret.targetWarehouse === 'noon' ? 'Noon FBN' : 'Main'}
+                      {(() => {
+                        const wh = warehouses.find(w => w.id === ret.targetWarehouse);
+                        return wh ? (lang === 'ar' ? wh.nameAr : wh.name) : ret.targetWarehouse;
+                      })()}
                     </td>
                   </tr>
                 ))}

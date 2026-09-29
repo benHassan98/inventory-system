@@ -19,6 +19,7 @@ export const INITIAL_WAREHOUSES: Warehouse[] = [
     type: 'Internal',
     location: 'Cairo Logistics City, Gate 3',
     locationAr: 'مدينة القاهرة اللوجستية، بوابة 3',
+    isMain: true,
   },
   {
     id: 'noon',
@@ -28,6 +29,7 @@ export const INITIAL_WAREHOUSES: Warehouse[] = [
     type: 'FBN 3PL',
     location: 'Noon Fulfilment Center, 6th of October City',
     locationAr: 'مركز وفاء نون، المنطقة الصناعية، مدينة 6 أكتوبر',
+    isMain: false,
   },
 ];
 

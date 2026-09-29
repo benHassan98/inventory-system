@@ -6,14 +6,16 @@ import {
   ArrowRightLeft,
   PackagePlus,
   ShoppingBag,
+  Star,
 } from 'lucide-react';
 
 export const DashboardOverview: React.FC = () => {
   const {
     totalSalesRevenue,
     netProfit,
-    mainWarehouseStockCount,
-    noonWarehouseStockCount,
+    warehouses,
+    mainWarehouseId,
+    getWarehouseStockCount,
     noonReceivablesBalance,
     supplierPayablesBalance,
     formatCurrency,
@@ -24,10 +26,17 @@ export const DashboardOverview: React.FC = () => {
     lang,
   } = useApp();
 
-  const totalStock = mainWarehouseStockCount + noonWarehouseStockCount;
-  const noonPercentage = totalStock > 0 ? Math.round((noonWarehouseStockCount / totalStock) * 100) : 0;
-  const mainPercentage = 100 - noonPercentage;
+  const totalStock = warehouses.reduce((acc, wh) => acc + getWarehouseStockCount(wh.id), 0);
   const profitMargin = totalSalesRevenue > 0 ? ((netProfit / totalSalesRevenue) * 100).toFixed(1) : '0';
+
+  const warehouseColors = [
+    { bg: 'bg-sky-400', dot: 'bg-sky-400' },
+    { bg: 'bg-amber-400', dot: 'bg-amber-400' },
+    { bg: 'bg-emerald-400', dot: 'bg-emerald-400' },
+    { bg: 'bg-purple-400', dot: 'bg-purple-400' },
+    { bg: 'bg-rose-400', dot: 'bg-rose-400' },
+    { bg: 'bg-indigo-400', dot: 'bg-indigo-400' },
+  ];
 
   const metrics = [
     {
@@ -130,49 +139,61 @@ export const DashboardOverview: React.FC = () => {
 
         {/* Minimal Progress Bar */}
         <div className="w-full bg-zinc-950 rounded-full h-2.5 flex overflow-hidden border border-zinc-800/80">
-          <div
-            className="bg-zinc-400 transition-all duration-300"
-            style={{ width: `${mainPercentage}%` }}
-            title={`Main: ${mainPercentage}%`}
-          />
-          <div
-            className="bg-amber-400 transition-all duration-300"
-            style={{ width: `${noonPercentage}%` }}
-            title={`Noon: ${noonPercentage}%`}
-          />
+          {warehouses.map((wh, idx) => {
+            const count = getWarehouseStockCount(wh.id);
+            const pct = totalStock > 0 ? (count / totalStock) * 100 : 0;
+            const color = warehouseColors[idx % warehouseColors.length];
+            if (pct <= 0) return null;
+            return (
+              <div
+                key={wh.id}
+                className={`${color.bg} transition-all duration-300`}
+                style={{ width: `${pct}%` }}
+                title={`${lang === 'ar' ? wh.nameAr : wh.name}: ${Math.round(pct)}%`}
+              />
+            );
+          })}
         </div>
 
         {/* Breakdown Items */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-          <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/60 border border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-zinc-400" />
-              <div>
-                <span className="text-xs font-medium text-zinc-200">
-                  {lang === 'ar' ? 'المستودع الرئيسي (القاهرة)' : 'Main Warehouse (Cairo)'}
-                </span>
-                <span className="text-[11px] text-zinc-500 block">{mainPercentage}%</span>
-              </div>
-            </div>
-            <span className="text-sm font-bold text-zinc-100 font-mono">
-              {mainWarehouseStockCount} <span className="text-xs font-normal text-zinc-400">{t.units}</span>
-            </span>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+          {warehouses.map((wh, idx) => {
+            const count = getWarehouseStockCount(wh.id);
+            const pct = totalStock > 0 ? Math.round((count / totalStock) * 100) : 0;
+            const color = warehouseColors[idx % warehouseColors.length];
 
-          <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/60 border border-zinc-800">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-              <div>
-                <span className="text-xs font-medium text-zinc-200">
-                  {lang === 'ar' ? 'مستودع نون FBN (أكتوبر)' : 'Noon FBN Warehouse'}
+            const isMain = wh.id === mainWarehouseId || wh.isMain;
+
+            return (
+              <div
+                key={wh.id}
+                className={`flex items-center justify-between p-3 rounded-md bg-zinc-950/60 border ${
+                  isMain ? 'border-amber-500/40 ring-1 ring-amber-500/10' : 'border-zinc-800'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${color.dot}`} />
+                  <div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-medium text-zinc-200 block">
+                        {lang === 'ar' ? wh.nameAr : wh.name}
+                      </span>
+                      {isMain && (
+                        <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 shrink-0" />
+                      )}
+                    </div>
+                    <span className="text-[11px] text-zinc-500 block">
+                      {pct}% • {wh.code}
+                      {isMain && (lang === 'ar' ? ' (رئيسي)' : ' (Main)')}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-zinc-100 font-mono">
+                  {count} <span className="text-xs font-normal text-zinc-400">{t.units}</span>
                 </span>
-                <span className="text-[11px] text-zinc-500 block">{noonPercentage}%</span>
               </div>
-            </div>
-            <span className="text-sm font-bold text-zinc-100 font-mono">
-              {noonWarehouseStockCount} <span className="text-xs font-normal text-zinc-400">{t.units}</span>
-            </span>
-          </div>
+            );
+          })}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-export type WarehouseId = 'main' | 'noon';
+export type WarehouseId = string;
 
 export interface Warehouse {
   id: WarehouseId;
@@ -8,6 +8,7 @@ export interface Warehouse {
   type: 'Internal' | 'FBN 3PL';
   location: string;
   locationAr: string;
+  isMain?: boolean;
 }
 
 export interface Product {
@@ -21,6 +22,7 @@ export interface Product {
   sellingPrice: number;
   stockMain: number;
   stockNoon: number;
+  warehouseStocks?: Record<string, number>;
   minStockAlert: number;
 }
 

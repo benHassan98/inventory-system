@@ -3,13 +3,16 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { WarehouseId } from '../types';
-import { Search, Plus, UserPlus, PackagePlus, Check, X } from 'lucide-react';
+import { Search, Plus, UserPlus, PackagePlus, Building2, Check, X, Star } from 'lucide-react';
 
 export const InboundPurchases: React.FC = () => {
   const {
     inboundShipments,
     products,
     suppliers,
+    warehouses,
+    mainWarehouseId,
+    addWarehouse,
     addInboundShipment,
     addSupplier,
     addProduct,
@@ -24,7 +27,7 @@ export const InboundPurchases: React.FC = () => {
   const [productId, setProductId] = useState<string>(products[0]?.id || '');
   const [quantity, setQuantity] = useState<number>(50);
   const [unitCost, setUnitCost] = useState<number>(products[0]?.unitCost || 100);
-  const [targetWarehouse, setTargetWarehouse] = useState<WarehouseId>('main');
+  const [targetWarehouse, setTargetWarehouse] = useState<WarehouseId>(mainWarehouseId || 'main');
   const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentStatus, setPaymentStatus] = useState<'Unpaid' | 'Partial' | 'Paid'>('Unpaid');
   const [partialCash, setPartialCash] = useState<number>(0);
@@ -47,6 +50,16 @@ export const InboundPurchases: React.FC = () => {
   const [newProdUnitCost, setNewProdUnitCost] = useState<number>(100);
   const [newProdSellingPrice, setNewProdSellingPrice] = useState<number>(180);
   const [newProdMinAlert, setNewProdMinAlert] = useState<number>(10);
+
+  // Quick Warehouse Add inside Inbound
+  const [isQuickWarehouseOpen, setIsQuickWarehouseOpen] = useState(false);
+  const [newWhName, setNewWhName] = useState('');
+  const [newWhNameAr, setNewWhNameAr] = useState('');
+  const [newWhCode, setNewWhCode] = useState('');
+  const [newWhType, setNewWhType] = useState<'Internal' | 'FBN 3PL'>('Internal');
+  const [newWhLocation, setNewWhLocation] = useState('');
+  const [newWhLocationAr, setNewWhLocationAr] = useState('');
+  const [newWhIsMain, setNewWhIsMain] = useState(false);
 
   // Table filter states
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -126,6 +139,31 @@ export const InboundPurchases: React.FC = () => {
     setNewProdSellingPrice(180);
     setNewProdMinAlert(10);
     setIsQuickProductOpen(false);
+  };
+
+  const handleQuickWarehouseSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWhName.trim()) return;
+
+    const createdWh = addWarehouse({
+      name: newWhName,
+      nameAr: newWhNameAr,
+      code: newWhCode,
+      type: newWhType,
+      location: newWhLocation,
+      locationAr: newWhLocationAr,
+      isMain: newWhIsMain,
+    });
+
+    setTargetWarehouse(createdWh.id);
+    setNewWhName('');
+    setNewWhNameAr('');
+    setNewWhCode('');
+    setNewWhType('Internal');
+    setNewWhLocation('');
+    setNewWhLocationAr('');
+    setNewWhIsMain(false);
+    setIsQuickWarehouseOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -402,6 +440,123 @@ export const InboundPurchases: React.FC = () => {
             </div>
           )}
 
+          {/* Quick Add Warehouse Sub-Panel */}
+          {isQuickWarehouseOpen && (
+            <div className="p-3 bg-zinc-950 border border-zinc-700/80 rounded-md space-y-3">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                <span className="text-xs font-semibold text-zinc-200 inline-flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-sky-400" />
+                  {t.addWarehouseModalTitle || (lang === 'ar' ? 'تسجيل مستودع جديد سريعاً' : 'Quick Add Warehouse')}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsQuickWarehouseOpen(false)}
+                  className="text-zinc-400 hover:text-zinc-200"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.warehouseNameEnLabel} *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Alexandria Distribution Hub"
+                    value={newWhName}
+                    onChange={e => setNewWhName(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.warehouseNameArLabel}</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: مستودع الإسكندرية اللوجستي"
+                    value={newWhNameAr}
+                    onChange={e => setNewWhNameAr(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.warehouseCodeLabel}</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. WH-ALX-01"
+                    value={newWhCode}
+                    onChange={e => setNewWhCode(e.target.value)}
+                    className="w-full text-xs font-mono uppercase rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.warehouseTypeLabel}</label>
+                  <select
+                    value={newWhType}
+                    onChange={e => setNewWhType(e.target.value as 'Internal' | 'FBN 3PL')}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  >
+                    <option value="Internal">{t.typeInternal}</option>
+                    <option value="FBN 3PL">{t.type3PL}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.locationEnLabel}</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Alexandria Port Free Zone"
+                    value={newWhLocation}
+                    onChange={e => setNewWhLocation(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.locationArLabel}</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: المنطقة الحرة بالعامرية، الإسكندرية"
+                    value={newWhLocationAr}
+                    onChange={e => setNewWhLocationAr(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  />
+                </div>
+              </div>
+
+              {/* Set as Main Checkbox */}
+              <div className="flex items-center gap-2 pt-0.5">
+                <input
+                  type="checkbox"
+                  id="newWhIsMainInbound"
+                  checked={newWhIsMain}
+                  onChange={e => setNewWhIsMain(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                />
+                <label htmlFor="newWhIsMainInbound" className="text-xs text-zinc-300 flex items-center gap-1 cursor-pointer select-none">
+                  <Star className="w-3 h-3 text-amber-400" />
+                  <span>{t.setAsMainCheckbox || (lang === 'ar' ? 'تعيين كمستودع رئيسي افتراضي' : 'Set as Default Main Warehouse')}</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickWarehouseOpen(false)}
+                  className="px-2.5 py-1 text-xs border border-zinc-700 rounded text-zinc-400 hover:text-zinc-200"
+                >
+                  {t.cancel}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleQuickWarehouseSubmit}
+                  className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold bg-sky-500 text-zinc-950 hover:bg-sky-400 rounded"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{lang === 'ar' ? 'حفظ واختيار المستودع' : 'Save & Select Warehouse'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* Supplier Selector */}
             <div>
@@ -412,6 +567,7 @@ export const InboundPurchases: React.FC = () => {
                   onClick={() => {
                     setIsQuickSupplierOpen(!isQuickSupplierOpen);
                     if (isQuickProductOpen) setIsQuickProductOpen(false);
+                    if (isQuickWarehouseOpen) setIsQuickWarehouseOpen(false);
                   }}
                   className="text-[11px] text-zinc-400 hover:text-zinc-100 inline-flex items-center gap-0.5 font-medium underline"
                 >
@@ -442,6 +598,7 @@ export const InboundPurchases: React.FC = () => {
                   onClick={() => {
                     setIsQuickProductOpen(!isQuickProductOpen);
                     if (isQuickSupplierOpen) setIsQuickSupplierOpen(false);
+                    if (isQuickWarehouseOpen) setIsQuickWarehouseOpen(false);
                   }}
                   className="text-[11px] text-zinc-400 hover:text-zinc-100 inline-flex items-center gap-0.5 font-medium underline"
                 >
@@ -465,14 +622,34 @@ export const InboundPurchases: React.FC = () => {
 
             {/* Target Warehouse */}
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.targetWarehouseLabel}</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-zinc-300">{t.targetWarehouseLabel}</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsQuickWarehouseOpen(!isQuickWarehouseOpen);
+                    if (isQuickSupplierOpen) setIsQuickSupplierOpen(false);
+                    if (isQuickProductOpen) setIsQuickProductOpen(false);
+                  }}
+                  className="text-[11px] text-zinc-400 hover:text-zinc-100 inline-flex items-center gap-0.5 font-medium underline"
+                >
+                  <Plus className="w-3 h-3" />
+                  {t.newWarehouseQuickBtn || (lang === 'ar' ? '+ مستودع جديد' : '+ New Warehouse')}
+                </button>
+              </div>
               <select
                 value={targetWarehouse}
                 onChange={e => setTargetWarehouse(e.target.value as WarehouseId)}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
-                <option value="main" className="bg-zinc-900 text-zinc-100">{lang === 'ar' ? 'المستودع الرئيسي (القاهرة)' : 'Main Warehouse (Cairo)'}</option>
-                <option value="noon" className="bg-zinc-900 text-zinc-100">{lang === 'ar' ? 'مستودع نون FBN (أكتوبر)' : 'Noon FBN Warehouse'}</option>
+                {warehouses.map(wh => {
+                  const isMain = wh.id === mainWarehouseId || wh.isMain;
+                  return (
+                    <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
+                      {isMain ? '★ ' : ''}{lang === 'ar' ? wh.nameAr : wh.name} ({wh.code}){isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Primary Main') : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -641,8 +818,11 @@ export const InboundPurchases: React.FC = () => {
             className="text-xs rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-zinc-200 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
           >
             <option value="all" className="bg-zinc-900">{t.allWarehouses}</option>
-            <option value="main" className="bg-zinc-900">{lang === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse'}</option>
-            <option value="noon" className="bg-zinc-900">Noon FBN</option>
+            {warehouses.map(wh => (
+              <option key={wh.id} value={wh.id} className="bg-zinc-900">
+                {lang === 'ar' ? wh.nameAr : wh.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -697,13 +877,20 @@ export const InboundPurchases: React.FC = () => {
                         {formatCurrency(item.totalCost)}
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                          item.targetWarehouse === 'noon'
-                            ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
-                            : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
-                        }`}>
-                          {item.targetWarehouse === 'noon' ? 'Noon FBN' : 'Main'}
-                        </span>
+                        {(() => {
+                          const whObj = warehouses.find(w => w.id === item.targetWarehouse);
+                          const is3pl = whObj ? whObj.type === 'FBN 3PL' : item.targetWarehouse === 'noon';
+                          const whTitle = whObj ? (lang === 'ar' ? whObj.nameAr : whObj.name) : item.targetWarehouse;
+                          return (
+                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
+                              is3pl
+                                ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
+                                : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
+                            }`}>
+                              {whTitle}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-2.5">
                         {item.paymentStatus === 'Paid' ? (

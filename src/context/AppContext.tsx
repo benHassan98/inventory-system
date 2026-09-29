@@ -43,10 +43,23 @@ interface AppContextType {
 
   // Warehouses & Inventory
   warehouses: Warehouse[];
+  mainWarehouseId: string;
+  setMainWarehouse: (warehouseId: string) => void;
   products: Product[];
   lowStockProducts: Product[];
   mainWarehouseStockCount: number;
   noonWarehouseStockCount: number;
+  getProductStock: (product: Product, warehouseId: string) => number;
+  getWarehouseStockCount: (warehouseId: string) => number;
+  addWarehouse: (data: {
+    name: string;
+    nameAr?: string;
+    code?: string;
+    type?: 'Internal' | 'FBN 3PL';
+    location?: string;
+    locationAr?: string;
+    isMain?: boolean;
+  }) => Warehouse;
   addProduct: (data: {
     sku?: string;
     name: string;
@@ -117,7 +130,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
 
-  const [warehouses] = useState<Warehouse[]>(INITIAL_WAREHOUSES);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(INITIAL_WAREHOUSES);
+  const [mainWarehouseId, setMainWarehouseId] = useState<string>('main');
 
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
@@ -135,6 +149,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const savedLang = localStorage.getItem(`${STORAGE_KEY_PREFIX}lang`);
       if (savedLang) setLangState(savedLang as Language);
+
+      const savedWarehouses = localStorage.getItem(`${STORAGE_KEY_PREFIX}warehouses`);
+      let loadedWarehouses = INITIAL_WAREHOUSES;
+      if (savedWarehouses) {
+        loadedWarehouses = JSON.parse(savedWarehouses);
+        setWarehouses(loadedWarehouses);
+      }
+
+      const savedMainWh = localStorage.getItem(`${STORAGE_KEY_PREFIX}mainWarehouse`);
+      if (savedMainWh) {
+        setMainWarehouseId(savedMainWh);
+      } else {
+        const designated = loadedWarehouses.find(w => w.isMain);
+        if (designated) setMainWarehouseId(designated.id);
+      }
 
       const savedProducts = localStorage.getItem(`${STORAGE_KEY_PREFIX}products`);
       if (savedProducts) setProducts(JSON.parse(savedProducts));
@@ -184,6 +213,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Persist items
+  useEffect(() => {
+    if (!isHydrated || typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}warehouses`, JSON.stringify(warehouses));
+    } catch {}
+  }, [warehouses, isHydrated]);
+
+  useEffect(() => {
+    if (!isHydrated || typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}mainWarehouse`, mainWarehouseId);
+    } catch {}
+  }, [mainWarehouseId, isHydrated]);
+
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
     try {
@@ -266,6 +309,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return lang === 'ar' ? `${formatted} ج.م` : `EGP ${formatted}`;
   };
 
+  // Helper: Retrieve Stock for a product in any warehouse
+  const getProductStock = (product: Product, warehouseId: string): number => {
+    if (product.warehouseStocks && product.warehouseStocks[warehouseId] !== undefined) {
+      return product.warehouseStocks[warehouseId];
+    }
+    if (warehouseId === 'main') return product.stockMain;
+    if (warehouseId === 'noon') return product.stockNoon;
+    return 0;
+  };
+
+  // Helper: Retrieve Total Stock across all products in a warehouse
+  const getWarehouseStockCount = (warehouseId: string): number => {
+    return products.reduce((acc, p) => acc + getProductStock(p, warehouseId), 0);
+  };
+
+  // Set Main Warehouse Logic
+  const setMainWarehouse = (warehouseId: string) => {
+    setMainWarehouseId(warehouseId);
+    setWarehouses(prev =>
+      prev.map(wh => ({
+        ...wh,
+        isMain: wh.id === warehouseId,
+      }))
+    );
+    const targetWh = warehouses.find(w => w.id === warehouseId);
+    const whName = targetWh ? (lang === 'ar' ? targetWh.nameAr : targetWh.name) : warehouseId;
+    addToast(
+      'success',
+      t.confirmed,
+      t.mainWarehouseAssignedSuccess
+        ? `${whName} ${t.mainWarehouseAssignedSuccess}`
+        : `${whName} is now designated as the main warehouse.`
+    );
+  };
+
+  // Add Warehouse Logic
+  const addWarehouse = (data: {
+    name: string;
+    nameAr?: string;
+    code?: string;
+    type?: 'Internal' | 'FBN 3PL';
+    location?: string;
+    locationAr?: string;
+    isMain?: boolean;
+  }): Warehouse => {
+    const id = `wh-${Date.now()}`;
+    const generatedCode = data.code?.trim().toUpperCase() || `WH-0${warehouses.length + 1}`;
+    const shouldBeMain = !!data.isMain || warehouses.length === 0;
+
+    const newWarehouse: Warehouse = {
+      id,
+      name: data.name.trim(),
+      nameAr: data.nameAr?.trim() || data.name.trim(),
+      code: generatedCode,
+      type: data.type || 'Internal',
+      location: data.location?.trim() || 'Cairo / Egypt',
+      locationAr: data.locationAr?.trim() || (lang === 'ar' ? 'مصر' : 'Cairo / Egypt'),
+      isMain: shouldBeMain,
+    };
+
+    if (shouldBeMain) {
+      setMainWarehouseId(id);
+      setWarehouses(prev => [...prev.map(w => ({ ...w, isMain: false })), newWarehouse]);
+    } else {
+      setWarehouses(prev => [...prev, newWarehouse]);
+    }
+
+    addToast('success', t.confirmed, t.warehouseAddedSuccess || 'New warehouse registered successfully!');
+    return newWarehouse;
+  };
+
   // Inbound Stock Logic
   const addInboundShipment = (data: Omit<InboundShipment, 'id' | 'reference' | 'totalCost'>) => {
     const totalCost = data.quantity * data.unitCost;
@@ -298,11 +412,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts(prevProducts =>
       prevProducts.map(prod => {
         if (prod.id === data.productId) {
+          const currentWhStock = getProductStock(prod, data.targetWarehouse);
+          const newWhStock = currentWhStock + data.quantity;
+          const updatedStocks = {
+            ...(prod.warehouseStocks || { main: prod.stockMain, noon: prod.stockNoon }),
+            [data.targetWarehouse]: newWhStock,
+          };
           return {
             ...prod,
             unitCost: data.unitCost, // Update latest unit cost
-            stockMain: data.targetWarehouse === 'main' ? prod.stockMain + data.quantity : prod.stockMain,
-            stockNoon: data.targetWarehouse === 'noon' ? prod.stockNoon + data.quantity : prod.stockNoon,
+            stockMain: data.targetWarehouse === 'main' ? newWhStock : prod.stockMain,
+            stockNoon: data.targetWarehouse === 'noon' ? newWhStock : prod.stockNoon,
+            warehouseStocks: updatedStocks,
           };
         }
         return prod;
@@ -351,7 +472,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, error: 'Product not found' };
     }
 
-    const availableStock = data.sourceWarehouse === 'main' ? product.stockMain : product.stockNoon;
+    const availableStock = getProductStock(product, data.sourceWarehouse);
     if (availableStock < data.quantity) {
       addToast('error', t.critical, t.insufficientStock);
       return { success: false, error: t.insufficientStock };
@@ -361,27 +482,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts(prevProducts =>
       prevProducts.map(p => {
         if (p.id === data.productId) {
+          const srcStock = getProductStock(p, data.sourceWarehouse) - data.quantity;
+          const tgtStock = getProductStock(p, data.targetWarehouse) + data.quantity;
+          const updatedStocks = {
+            ...(p.warehouseStocks || { main: p.stockMain, noon: p.stockNoon }),
+            [data.sourceWarehouse]: srcStock,
+            [data.targetWarehouse]: tgtStock,
+          };
           return {
             ...p,
             stockMain:
-              data.sourceWarehouse === 'main'
-                ? p.stockMain - data.quantity
-                : data.targetWarehouse === 'main'
-                ? p.stockMain + data.quantity
-                : p.stockMain,
+              data.sourceWarehouse === 'main' ? srcStock : data.targetWarehouse === 'main' ? tgtStock : p.stockMain,
             stockNoon:
-              data.sourceWarehouse === 'noon'
-                ? p.stockNoon - data.quantity
-                : data.targetWarehouse === 'noon'
-                ? p.stockNoon + data.quantity
-                : p.stockNoon,
+              data.sourceWarehouse === 'noon' ? srcStock : data.targetWarehouse === 'noon' ? tgtStock : p.stockNoon,
+            warehouseStocks: updatedStocks,
           };
         }
         return p;
       })
     );
 
-    const refNum = `TR-FBN-${String(transfers.length + 45).padStart(3, '0')}`;
+    const refNum = `TR-${String(transfers.length + 45).padStart(3, '0')}`;
     const newTransfer: StockTransfer = {
       ...data,
       id: `tr-${Date.now()}`,
@@ -400,7 +521,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, error: 'Product not found' };
     }
 
-    const sourceStock = data.sourceWarehouse === 'main' ? product.stockMain : product.stockNoon;
+    const sourceStock = getProductStock(product, data.sourceWarehouse);
     if (sourceStock < data.quantity) {
       addToast('error', t.critical, t.insufficientStock);
       return { success: false, error: t.insufficientStock };
@@ -417,10 +538,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts(prevProducts =>
       prevProducts.map(p => {
         if (p.id === data.productId) {
+          const newWhStock = getProductStock(p, data.sourceWarehouse) - data.quantity;
+          const updatedStocks = {
+            ...(p.warehouseStocks || { main: p.stockMain, noon: p.stockNoon }),
+            [data.sourceWarehouse]: newWhStock,
+          };
           return {
             ...p,
-            stockMain: data.sourceWarehouse === 'main' ? p.stockMain - data.quantity : p.stockMain,
-            stockNoon: data.sourceWarehouse === 'noon' ? p.stockNoon - data.quantity : p.stockNoon,
+            stockMain: data.sourceWarehouse === 'main' ? newWhStock : p.stockMain,
+            stockNoon: data.sourceWarehouse === 'noon' ? newWhStock : p.stockNoon,
+            warehouseStocks: updatedStocks,
           };
         }
         return p;
@@ -459,10 +586,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setProducts(prevProducts =>
         prevProducts.map(p => {
           if (p.id === retData.productId) {
+            const newWhStock = getProductStock(p, retData.targetWarehouse) + retData.quantity;
+            const updatedStocks = {
+              ...(p.warehouseStocks || { main: p.stockMain, noon: p.stockNoon }),
+              [retData.targetWarehouse]: newWhStock,
+            };
             return {
               ...p,
-              stockMain: retData.targetWarehouse === 'main' ? p.stockMain + retData.quantity : p.stockMain,
-              stockNoon: retData.targetWarehouse === 'noon' ? p.stockNoon + retData.quantity : p.stockNoon,
+              stockMain: retData.targetWarehouse === 'main' ? newWhStock : p.stockMain,
+              stockNoon: retData.targetWarehouse === 'noon' ? newWhStock : p.stockNoon,
+              warehouseStocks: updatedStocks,
             };
           }
           return p;
@@ -599,6 +732,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Reset to Default Demo Data
   const resetToDefaultData = () => {
+    setWarehouses(INITIAL_WAREHOUSES);
+    setMainWarehouseId('main');
     setProducts(INITIAL_PRODUCTS);
     setSuppliers(INITIAL_SUPPLIERS);
     setInboundShipments(INITIAL_INBOUND_SHIPMENTS);
@@ -622,8 +757,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setCurrency,
         formatCurrency,
         warehouses,
+        mainWarehouseId,
+        setMainWarehouse,
+        addWarehouse,
         products,
         addProduct,
+        getProductStock,
+        getWarehouseStockCount,
         lowStockProducts,
         mainWarehouseStockCount,
         noonWarehouseStockCount,
