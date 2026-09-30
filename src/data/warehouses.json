@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "name": "Noon FBN Warehouse",
+    "type": "Noon",
+    "isMain": false
+  },
+  {
+    "id": 2,
+    "name": "Main Central Warehouse (Cairo)",
+    "type": "Internal",
+    "isMain": true
+  }
+]

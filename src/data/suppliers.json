@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "name": "Nile Tech Imports Cairo",
+    "contact": "Eng. Ahmed Mansour",
+    "phone": "+20 10 1234 5678",
+    "totalPurchased": 142000,
+    "totalPaid": 115000
+  },
+  {
+    "id": 2,
+    "name": "Shenzhen Direct Trade Ltd",
+    "contact": "Mr. Liu Wei",
+    "phone": "+86 755 8899 0011",
+    "totalPurchased": 88500,
+    "totalPaid": 76000
+  },
+  {
+    "id": 3,
+    "name": "Delta Apparel & Textile Factory",
+    "contact": "Mahmoud El-Sayed",
+    "phone": "+20 12 9876 5432",
+    "totalPurchased": 45000,
+    "totalPaid": 39000
+  },
+  {
+    "id": 4,
+    "name": "Al-Ahram Essence Perfumes",
+    "contact": "Tarek Al-Alfy",
+    "phone": "+20 11 3332 2110",
+    "totalPurchased": 38000,
+    "totalPaid": 35000
+  }
+]

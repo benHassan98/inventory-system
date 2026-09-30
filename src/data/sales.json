@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "productId": 1,
+    "quantity": 3,
+    "unitCost": 650,
+    "totalRevenue": 2697,
+    "warehouseId": 1,
+    "saleDate": "2026-09-19",
+    "status": "Completed",
+    "noonFeeRate": 0.11,
+    "netReceivableAmount": 2400.33
+  },
+  {
+    "id": 2,
+    "productId": 3,
+    "quantity": 1,
+    "unitCost": 890,
+    "totalRevenue": 1249,
+    "warehouseId": 2,
+    "saleDate": "2026-09-19",
+    "status": "Completed",
+    "noonFeeRate": 0,
+    "netReceivableAmount": 0
+  },
+  {
+    "id": 3,
+    "productId": 2,
+    "quantity": 4,
+    "unitCost": 280,
+    "totalRevenue": 1796,
+    "warehouseId": 1,
+    "saleDate": "2026-09-19",
+    "status": "Completed",
+    "noonFeeRate": 0.12,
+    "netReceivableAmount": 1580.48
+  },
+  {
+    "id": 4,
+    "productId": 5,
+    "quantity": 5,
+    "unitCost": 110,
+    "totalRevenue": 1425,
+    "warehouseId": 1,
+    "saleDate": "2026-09-20",
+    "status": "Completed",
+    "noonFeeRate": 0.10,
+    "netReceivableAmount": 1282.5
+  },
+  {
+    "id": 5,
+    "productId": 4,
+    "quantity": 8,
+    "unitCost": 42,
+    "totalRevenue": 952,
+    "warehouseId": 2,
+    "saleDate": "2026-09-20",
+    "status": "Completed",
+    "noonFeeRate": 0,
+    "netReceivableAmount": 0
+  }
+]

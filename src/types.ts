@@ -1,6 +1,7 @@
 export interface Warehouse {
   id: number;
   name: string;
+  type: 'Noon' | 'Internal';
   isMain: boolean;
 }
 
@@ -14,12 +15,12 @@ export interface Product {
 
 export interface InboundShipment {
   id: number;
+  warehouseId: number;
   supplierId: string;
   productId: string;
   quantity: number;
   unitCost: number;
   totalCost: number;
-  warehouseId: number;
   purchaseDate: string;
   paymentStatus: 'Unpaid' | 'Partial' | 'Paid';
   paidAmount: number;

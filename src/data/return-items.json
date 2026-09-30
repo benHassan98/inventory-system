@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "saleId": 1,
+    "productId": 1,
+    "quantity": 1,
+    "refundAmount": 899,
+    "warehouseId": 1,
+    "condition": "Sellable",
+    "restocked": true,
+    "reason": "Customer cancelled delivery at doorstep",
+    "returnDate": "2026-09-18"
+  }
+]

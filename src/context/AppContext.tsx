@@ -16,18 +16,8 @@ import {
   NavigationTab,
   ToastMessage,
 } from '../types';
-import {
-  INITIAL_WAREHOUSES,
-  INITIAL_PRODUCTS,
-  INITIAL_SUPPLIERS,
-  INITIAL_INBOUND_SHIPMENTS,
-  INITIAL_TRANSFERS,
-  INITIAL_SALES,
-  INITIAL_RETURNS,
-  INITIAL_NOON_SETTLEMENTS,
-  INITIAL_SUPPLIER_PAYMENTS,
-} from '../data/initialData';
 import { TRANSLATIONS } from '../utils/translations';
+import { loadFromFile } from '../utils/data-utils';
 
 interface AppContextType {
   // Navigation & Preferences
@@ -42,8 +32,8 @@ interface AppContextType {
 
   // Warehouses & Inventory
   warehouses: Warehouse[];
-  mainWarehouseId: string;
-  setMainWarehouse: (warehouseId: string) => void;
+  mainWarehouseId: number;
+  setMainWarehouse: (warehouseId: number) => void;
   products: Product[];
   lowStockProducts: Product[];
   mainWarehouseStockCount: number;
@@ -113,6 +103,16 @@ interface AppContextType {
   // Demo Helpers
   resetToDefaultData: () => void;
 }
+const warehouseList: Warehouse[] = loadFromFile<Warehouse>("warehouses");
+const productList: Product[] = loadFromFile<Product>("products");
+const supplierList: Supplier[] = loadFromFile<Supplier>("suppliers");
+const inboundShipmentList: InboundShipment[] = loadFromFile<InboundShipment>("inbound-shipments");
+const stockTransferList: StockTransfer[] = loadFromFile<StockTransfer>("stock-transfers");
+const saleList: Sale[] = loadFromFile<Sale>("sales");
+const returnItemList: ReturnItem[] = loadFromFile<ReturnItem>("return-items");
+const noonSettlementList: NoonSettlement[] = loadFromFile<NoonSettlement>("noon-settlements");
+const supplierPaymentList: SupplierPayment[] = loadFromFile<SupplierPayment>("supplier-payments");
+
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -129,17 +129,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(INITIAL_WAREHOUSES);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(warehouseList);
   const [mainWarehouseId, setMainWarehouseId] = useState<string>('main');
 
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
-  const [inboundShipments, setInboundShipments] = useState<InboundShipment[]>(INITIAL_INBOUND_SHIPMENTS);
-  const [transfers, setTransfers] = useState<StockTransfer[]>(INITIAL_TRANSFERS);
-  const [sales, setSales] = useState<Sale[]>(INITIAL_SALES);
-  const [returns, setReturns] = useState<ReturnItem[]>(INITIAL_RETURNS);
-  const [noonSettlements, setNoonSettlements] = useState<NoonSettlement[]>(INITIAL_NOON_SETTLEMENTS);
-  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>(INITIAL_SUPPLIER_PAYMENTS);
+  const [products, setProducts] = useState<Product[]>(productList);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(supplierList);
+  const [inboundShipments, setInboundShipments] = useState<InboundShipment[]>(inboundShipmentList);
+  const [transfers, setTransfers] = useState<StockTransfer[]>(stockTransferList);
+  const [sales, setSales] = useState<Sale[]>(saleList);
+  const [returns, setReturns] = useState<ReturnItem[]>(returnItemList);
+  const [noonSettlements, setNoonSettlements] = useState<NoonSettlement[]>(noonSettlementList);
+  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>(supplierPaymentList);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -150,7 +150,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (savedLang) setLangState(savedLang as Language);
 
       const savedWarehouses = localStorage.getItem(`${STORAGE_KEY_PREFIX}warehouses`);
-      let loadedWarehouses = INITIAL_WAREHOUSES;
+      let loadedWarehouses = warehouseList;
       if (savedWarehouses) {
         loadedWarehouses = JSON.parse(savedWarehouses);
         setWarehouses(loadedWarehouses);
@@ -731,16 +731,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Reset to Default Demo Data
   const resetToDefaultData = () => {
-    setWarehouses(INITIAL_WAREHOUSES);
+    setWarehouses(warehouseList);
     setMainWarehouseId('main');
-    setProducts(INITIAL_PRODUCTS);
-    setSuppliers(INITIAL_SUPPLIERS);
-    setInboundShipments(INITIAL_INBOUND_SHIPMENTS);
-    setTransfers(INITIAL_TRANSFERS);
-    setSales(INITIAL_SALES);
-    setReturns(INITIAL_RETURNS);
-    setNoonSettlements(INITIAL_NOON_SETTLEMENTS);
-    setSupplierPayments(INITIAL_SUPPLIER_PAYMENTS);
+    setProducts(productList);
+    setSuppliers(supplierList);
+    setInboundShipments(inboundShipmentList);
+    setTransfers(stockTransferList);
+    setSales(saleList);
+    setReturns(returnItemList);
+    setNoonSettlements(noonSettlementList);
+    setSupplierPayments(supplierPaymentList);
     addToast('info', t.resetDemo, 'All demo inventory and ledger data restored to initial state.');
   };
 

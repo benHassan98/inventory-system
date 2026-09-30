@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "productId": 1,
+    "sourceWarehouse": 2,
+    "targetWarehouse": 1,
+    "quantity": 35,
+    "status": "Completed",
+    "transferDate": "2026-09-15"
+  },
+  {
+    "id": 2,
+    "productId": 5,
+    "sourceWarehouse": 2,
+    "targetWarehouse": 1,
+    "quantity": 25,
+    "status": "Completed",
+    "transferDate": "2026-09-17"
+  },
+  {
+    "id": 3,
+    "productId": 6,
+    "sourceWarehouse": 2,
+    "targetWarehouse": 1,
+    "quantity": 40,
+    "status": "In Transit",
+    "fbnAsnNumber": "ASN-NOON-89104",
+    "transferDate": "2026-09-20"
+  }
+]

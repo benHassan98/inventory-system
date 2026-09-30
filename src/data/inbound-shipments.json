@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "supplierId": 1,
+    "productId": 1,
+    "quantity": 50,
+    "unitCost": 650,
+    "totalCost": 32500,
+    "warehouseId": 2,
+    "purchaseDate": "2026-09-14",
+    "paymentStatus": "Paid",
+    "paidAmount": 32500
+  },
+  {
+    "id": 2,
+    "supplierId": 2,
+    "productId": 2,
+    "productName": "Anker 737 PowerBank 24,000mAh (140W)",
+    "quantity": 60,
+    "unitCost": 280,
+    "totalCost": 16800,
+    "warehouseId": 1,
+    "purchaseDate": "2026-09-16",
+    "paymentStatus": "Partial",
+    "paidAmount": 8400
+  },
+  {
+    "id": 3,
+    "supplierId": 4,
+    "productId": 5,
+    "quantity": 40,
+    "unitCost": 110,
+    "totalCost": 4400,
+    "warehouseId": 2,
+    "purchaseDate": "2026-09-18",
+    "paymentStatus": "Unpaid",
+    "paidAmount": 0
+  },
+  {
+    "id": 4,
+    "supplierId": 3,
+    "productId": 4,
+    "productName": "Oversized Heavyweight Cotton T-Shirt",
+    "quantity": 100,
+    "unitCost": 42,
+    "totalCost": 4200,
+    "warehouseId": 2,
+    "purchaseDate": "2026-09-19",
+    "paymentStatus": "Unpaid",
+    "paidAmount": 0
+  }
+]

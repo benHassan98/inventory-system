@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1,
+    "name": "Apple AirPods Pro 2 (USB-C)",
+    "unitCost": 650,
+    "sellingPrice": 899,
+    "stock": {}
+  },
+  {
+    "id": 2,
+    "name": "Anker 737 PowerBank 24,000mAh (140W)",
+    "unitCost": 280,
+    "sellingPrice": 449,
+    "stock": {}
+  },
+  {
+    "id": 3,
+    "name": "Sony WH-1000XM5 Wireless Headphones",
+    "unitCost": 890,
+    "sellingPrice": 1249,
+    "stock": {}
+  },
+  {
+    "id": 4,
+    "name": "Oversized Heavyweight Cotton T-Shirt",
+    "unitCost": 42,
+    "sellingPrice": 119,
+    "stock": {}
+  },
+  {
+    "id": 5,
+    "name": "Royal Oud Eau De Parfum 100ml",
+    "unitCost": 110,
+    "sellingPrice": 285,
+    "stock": {}
+  },
+  {
+    "id": 6,
+    "name": "Stainless Steel Thermal Tumbler 1.2L",
+    "unitCost": 35,
+    "sellingPrice": 89,
+    "stock": {}
+  },
+  {
+    "id": 7,
+    "name": "3-in-1 Foldable MagSafe Charging Station",
+    "unitCost": 75,
+    "sellingPrice": 179,
+    "stock": {}
+  }
+]
