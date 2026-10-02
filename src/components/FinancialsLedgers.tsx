@@ -13,12 +13,12 @@ import {
 export const FinancialsLedgers: React.FC = () => {
   const {
     sales,
+    warehouses,
     returns,
     suppliers,
     noonSettlements,
     supplierPayments,
     totalSalesRevenue,
-    totalCOGS,
     netProfit,
     noonReceivablesBalance,
     supplierPayablesBalance,
@@ -34,37 +34,25 @@ export const FinancialsLedgers: React.FC = () => {
 
   // Noon Payout Form
   const [isNoonFormOpen, setIsNoonFormOpen] = useState(false);
-  const [noonPayoutAmount, setNoonPayoutAmount] = useState<number>(noonReceivablesBalance > 0 ? noonReceivablesBalance : 5000);
-  const [noonPaymentMethod, setNoonPaymentMethod] = useState<string>('Bank Wire Transfer');
-  const [noonBankRef, setNoonBankRef] = useState<string>('CIB-TRX-8841');
+  const [noonPayoutAmount, setNoonPayoutAmount] = useState<number>(noonReceivablesBalance);
   const [noonPayoutDate, setNoonPayoutDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // Supplier Payment Form
   const [isSupplierFormOpen, setIsSupplierFormOpen] = useState(false);
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string>(suppliers[0]?.id || '');
-  const [supplierPaymentAmount, setSupplierPaymentAmount] = useState<number>(1000);
-  const [supplierPaymentMethod, setSupplierPaymentMethod] = useState<string>('InstaPay / Bank Transfer');
+  const [selectedSupplierId, setSelectedSupplierId] = useState<number>(suppliers.length ? suppliers[0].id : -1);
+  const [supplierPaymentAmount, setSupplierPaymentAmount] = useState<number>(0);
   const [supplierPaymentDate, setSupplierPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // Add Supplier Form
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [newSupName, setNewSupName] = useState('');
-  const [newSupNameAr, setNewSupNameAr] = useState('');
   const [newSupContact, setNewSupContact] = useState('');
   const [newSupPhone, setNewSupPhone] = useState('');
   const [newSupBalance, setNewSupBalance] = useState<number>(0);
 
   // P&L Calculations
-  const totalNoonGrossSales = sales
-    .filter(s => s.sourceWarehouse === 'noon')
-    .reduce((acc, s) => acc + s.totalRevenue, 0);
-
-  const totalDirectGrossSales = sales
-    .filter(s => s.sourceWarehouse === 'main')
-    .reduce((acc, s) => acc + s.totalRevenue, 0);
-
   const totalNoonFees = sales
-    .filter(s => s.sourceWarehouse === 'noon')
+    .filter(s => warehouses[s.warehouseId].type === 'Noon')
     .reduce((acc, s) => acc + s.totalRevenue * s.noonFeeRate, 0);
 
   const totalRefunds = returns.reduce((acc, r) => acc + r.refundAmount, 0);
@@ -75,10 +63,7 @@ export const FinancialsLedgers: React.FC = () => {
 
     addNoonSettlement({
       amount: Number(noonPayoutAmount),
-      paymentMethod: noonPaymentMethod,
-      bankReference: noonBankRef,
       date: noonPayoutDate,
-      notes: 'Noon Marketplace Bi-weekly Disbursement',
     });
 
     setIsNoonFormOpen(false);
@@ -91,11 +76,8 @@ export const FinancialsLedgers: React.FC = () => {
 
     addSupplierPayment({
       supplierId: sup.id,
-      supplierName: lang === 'ar' ? sup.nameAr : sup.name,
       amount: Number(supplierPaymentAmount),
-      paymentMethod: supplierPaymentMethod,
       date: supplierPaymentDate,
-      notes: 'Supplier partial/full settlement',
     });
 
     setIsSupplierFormOpen(false);
@@ -107,7 +89,6 @@ export const FinancialsLedgers: React.FC = () => {
 
     const created = addSupplier({
       name: newSupName,
-      nameAr: newSupNameAr,
       contact: newSupContact,
       phone: newSupPhone,
       initialBalance: newSupBalance,
@@ -115,7 +96,6 @@ export const FinancialsLedgers: React.FC = () => {
 
     setSelectedSupplierId(created.id);
     setNewSupName('');
-    setNewSupNameAr('');
     setNewSupContact('');
     setNewSupPhone('');
     setNewSupBalance(0);
@@ -171,33 +151,30 @@ export const FinancialsLedgers: React.FC = () => {
       <div className="flex space-x-1 border-b border-zinc-800 pb-2">
         <button
           onClick={() => setActiveTab('pnl')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            activeTab === 'pnl'
-              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
-          }`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeTab === 'pnl'
+            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
+            }`}
         >
           <Receipt className="w-3.5 h-3.5" />
           <span>{t.pnlSummary}</span>
         </button>
         <button
           onClick={() => setActiveTab('noon')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            activeTab === 'noon'
-              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
-          }`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeTab === 'noon'
+            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
+            }`}
         >
           <Landmark className="w-3.5 h-3.5" />
           <span>{t.noonLedgerTitle}</span>
         </button>
         <button
           onClick={() => setActiveTab('suppliers')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            activeTab === 'suppliers'
-              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
-          }`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeTab === 'suppliers'
+            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
+            }`}
         >
           <HandCoins className="w-3.5 h-3.5" />
           <span>{t.supplierLedgerTitle}</span>
@@ -212,12 +189,6 @@ export const FinancialsLedgers: React.FC = () => {
               <span className="text-xs font-medium text-zinc-400 block">{t.totalRevenue}</span>
               <span className="text-xl font-bold text-zinc-100 font-mono mt-1 block">
                 {formatCurrency(totalSalesRevenue)}
-              </span>
-            </div>
-            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
-              <span className="text-xs font-medium text-zinc-400 block">{t.totalCogs}</span>
-              <span className="text-xl font-bold text-zinc-300 font-mono mt-1 block">
-                {formatCurrency(totalCOGS)}
               </span>
             </div>
             <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
@@ -237,18 +208,6 @@ export const FinancialsLedgers: React.FC = () => {
             </div>
             <table className="w-full text-xs">
               <tbody className="divide-y divide-zinc-800/80">
-                <tr className="hover:bg-zinc-800/40">
-                  <td className="px-4 py-2.5 text-zinc-200 font-medium">Noon FBN Marketplace Sales</td>
-                  <td className="px-4 py-2.5 text-end font-mono font-medium text-zinc-100">+{formatCurrency(totalNoonGrossSales)}</td>
-                </tr>
-                <tr className="hover:bg-zinc-800/40">
-                  <td className="px-4 py-2.5 text-zinc-200 font-medium">Direct / Store Sales</td>
-                  <td className="px-4 py-2.5 text-end font-mono font-medium text-zinc-100">+{formatCurrency(totalDirectGrossSales)}</td>
-                </tr>
-                <tr className="hover:bg-zinc-800/40">
-                  <td className="px-4 py-2.5 text-zinc-400">Less: Cost of Goods Sold (COGS)</td>
-                  <td className="px-4 py-2.5 text-end font-mono font-medium text-rose-400">-{formatCurrency(totalCOGS)}</td>
-                </tr>
                 <tr className="hover:bg-zinc-800/40">
                   <td className="px-4 py-2.5 text-zinc-400">Less: Noon Marketplace Commissions & FBN Fees</td>
                   <td className="px-4 py-2.5 text-end font-mono font-medium text-rose-400">-{formatCurrency(totalNoonFees)}</td>
@@ -310,16 +269,6 @@ export const FinancialsLedgers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.bankRefLabel}</label>
-                  <input
-                    type="text"
-                    value={noonBankRef}
-                    onChange={e => setNoonBankRef(e.target.value)}
-                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                    required
-                  />
-                </div>
-                <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">{t.date}</label>
                   <input
                     type="date"
@@ -368,10 +317,7 @@ export const FinancialsLedgers: React.FC = () => {
               <tbody className="divide-y divide-zinc-800/80">
                 {noonSettlements.map(item => (
                   <tr key={item.id} className="hover:bg-zinc-800/40">
-                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{item.reference}</td>
                     <td className="px-3 py-2.5 text-zinc-400">{item.date}</td>
-                    <td className="px-3 py-2.5 text-zinc-300">{item.paymentMethod}</td>
-                    <td className="px-3 py-2.5 font-mono text-zinc-400">{item.bankReference}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-bold text-emerald-400">
                       +{formatCurrency(item.amount)}
                     </td>
@@ -443,16 +389,6 @@ export const FinancialsLedgers: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.supplierNameArLabel}</label>
-                  <input
-                    type="text"
-                    value={newSupNameAr}
-                    onChange={e => setNewSupNameAr(e.target.value)}
-                    placeholder="مثال: شركة القاهرة للمنسوجات"
-                    className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  />
-                </div>
-                <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">{t.contactPersonLabel}</label>
                   <input
                     type="text"
@@ -516,13 +452,13 @@ export const FinancialsLedgers: React.FC = () => {
                   <label className="block text-xs font-medium text-zinc-300 mb-1">{t.supplier}</label>
                   <select
                     value={selectedSupplierId}
-                    onChange={e => setSelectedSupplierId(e.target.value)}
+                    onChange={e => setSelectedSupplierId(Number(e.target.value))}
                     className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                     required
                   >
                     {suppliers.map(s => (
                       <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
-                        {lang === 'ar' ? s.nameAr : s.name} ({formatCurrency(s.currentBalance)})
+                        {s.name} ({formatCurrency(s.totalPaid - s.totalPurchased)})
                       </option>
                     ))}
                   </select>
@@ -589,18 +525,18 @@ export const FinancialsLedgers: React.FC = () => {
                 {suppliers.map(s => (
                   <tr key={s.id} className="hover:bg-zinc-800/40">
                     <td className="px-3 py-2.5 font-medium text-zinc-200">
-                      {lang === 'ar' ? s.nameAr : s.name}
+                      {s.name}
                     </td>
                     <td className="px-3 py-2.5 text-end font-mono text-zinc-300">{formatCurrency(s.totalPurchased)}</td>
                     <td className="px-3 py-2.5 text-end font-mono text-emerald-400">{formatCurrency(s.totalPaid)}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-bold text-rose-400">
-                      {formatCurrency(s.currentBalance)}
+                      {formatCurrency(s.totalPaid - s.totalPurchased)}
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <button
                         onClick={() => {
                           setSelectedSupplierId(s.id);
-                          setSupplierPaymentAmount(s.currentBalance > 0 ? s.currentBalance : 1000);
+                          setSupplierPaymentAmount(s.totalPaid - s.totalPurchased);
                           setIsSupplierFormOpen(true);
                         }}
                         className="px-2 py-1 text-[11px] font-medium border border-zinc-700 bg-zinc-800 rounded text-zinc-200 hover:bg-zinc-700 hover:text-white"
@@ -634,10 +570,8 @@ export const FinancialsLedgers: React.FC = () => {
               <tbody className="divide-y divide-zinc-800/80">
                 {supplierPayments.map(p => (
                   <tr key={p.id} className="hover:bg-zinc-800/40">
-                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{p.reference}</td>
                     <td className="px-3 py-2.5 text-zinc-400">{p.date}</td>
-                    <td className="px-3 py-2.5 font-medium text-zinc-200">{p.supplierName}</td>
-                    <td className="px-3 py-2.5 text-zinc-300">{p.paymentMethod}</td>
+                    <td className="px-3 py-2.5 font-medium text-zinc-200">{suppliers[p.supplierId].name}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-100">
                       {formatCurrency(p.amount)}
                     </td>
