@@ -80,15 +80,15 @@ interface AppContextType {
   removeToast: (id: string) => void;
 
 }
-const warehouseList: Warehouse[] = loadFromFile<Warehouse>("warehouses");
-const productList: Product[] = loadFromFile<Product>("products");
-const supplierList: Supplier[] = loadFromFile<Supplier>("suppliers");
-const inboundShipmentList: InboundShipment[] = loadFromFile<InboundShipment>("inbound-shipments");
-const stockTransferList: StockTransfer[] = loadFromFile<StockTransfer>("stock-transfers");
-const saleList: Sale[] = loadFromFile<Sale>("sales");
-const returnItemList: ReturnItem[] = loadFromFile<ReturnItem>("return-items");
-const noonSettlementList: NoonSettlement[] = loadFromFile<NoonSettlement>("noon-settlements");
-const supplierPaymentList: SupplierPayment[] = loadFromFile<SupplierPayment>("supplier-payments");
+const warehouseList: Warehouse[] = await loadFromFile<Warehouse>("warehouses");
+const productList: Product[] = await loadFromFile<Product>("products");
+const supplierList: Supplier[] = await loadFromFile<Supplier>("suppliers");
+const inboundShipmentList: InboundShipment[] = await loadFromFile<InboundShipment>("inbound-shipments");
+const stockTransferList: StockTransfer[] = await loadFromFile<StockTransfer>("stock-transfers");
+const saleList: Sale[] = await loadFromFile<Sale>("sales");
+const returnItemList: ReturnItem[] = await loadFromFile<ReturnItem>("return-items");
+const noonSettlementList: NoonSettlement[] = await loadFromFile<NoonSettlement>("noon-settlements");
+const supplierPaymentList: SupplierPayment[] = await loadFromFile<SupplierPayment>("supplier-payments");
 
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -454,8 +454,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     const totalRevenue = data.quantity * data.sellingPrice;
-    const cogs = data.quantity * (data.unitCost || product.unitCost);
-    const grossProfit = totalRevenue - cogs;
     const isNoon = warehouses[data.warehouseId].type === "Noon";
     const noonFeeRate = isNoon ? 0.11 : 0; // 11% average Noon commission + pick & pack
     const netReceivableAmount = isNoon ? totalRevenue * (1 - noonFeeRate) : 0;

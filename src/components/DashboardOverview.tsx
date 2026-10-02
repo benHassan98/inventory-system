@@ -20,6 +20,7 @@ export const DashboardOverview: React.FC = () => {
     supplierPayablesBalance,
     formatCurrency,
     sales,
+    products,
     transfers,
     setCurrentTab,
     t,
@@ -149,7 +150,7 @@ export const DashboardOverview: React.FC = () => {
                 key={wh.id}
                 className={`${color.bg} transition-all duration-300`}
                 style={{ width: `${pct}%` }}
-                title={`${lang === 'ar' ? wh.nameAr : wh.name}: ${Math.round(pct)}%`}
+                title={`${wh.name}: ${Math.round(pct)}%`}
               />
             );
           })}
@@ -167,23 +168,22 @@ export const DashboardOverview: React.FC = () => {
             return (
               <div
                 key={wh.id}
-                className={`flex items-center justify-between p-3 rounded-md bg-zinc-950/60 border ${
-                  isMain ? 'border-amber-500/40 ring-1 ring-amber-500/10' : 'border-zinc-800'
-                }`}
+                className={`flex items-center justify-between p-3 rounded-md bg-zinc-950/60 border ${isMain ? 'border-amber-500/40 ring-1 ring-amber-500/10' : 'border-zinc-800'
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full ${color.dot}`} />
                   <div>
                     <div className="flex items-center gap-1">
                       <span className="text-xs font-medium text-zinc-200 block">
-                        {lang === 'ar' ? wh.nameAr : wh.name}
+                        {wh.name}
                       </span>
                       {isMain && (
                         <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 shrink-0" />
                       )}
                     </div>
                     <span className="text-[11px] text-zinc-500 block">
-                      {pct}% • {wh.code}
+                      {pct}% • {wh.name}
                       {isMain && (lang === 'ar' ? ' (رئيسي)' : ' (Main)')}
                     </span>
                   </div>
@@ -218,19 +218,13 @@ export const DashboardOverview: React.FC = () => {
               <div key={sale.id} className="py-2.5 flex items-center justify-between text-xs">
                 <div>
                   <span className="font-medium text-zinc-200">
-                    {sale.productName}
+                    {products[sale.productId].name}
                   </span>
-                  <div className="text-[11px] text-zinc-500">
-                    {sale.orderNumber} • {sale.channel}
-                  </div>
                 </div>
                 <div className="text-end">
                   <span className="font-medium text-zinc-200 font-mono">
                     {formatCurrency(sale.totalRevenue)}
                   </span>
-                  <div className="text-[11px] text-emerald-400 font-mono">
-                    +{formatCurrency(sale.grossProfit)}
-                  </div>
                 </div>
               </div>
             ))}
@@ -255,10 +249,9 @@ export const DashboardOverview: React.FC = () => {
             {transfers.slice(0, 5).map(item => (
               <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
                 <div>
-                  <span className="font-medium text-zinc-200">{item.productName}</span>
+                  <span className="font-medium text-zinc-200">{products[item.productId].name}</span>
                   <div className="text-[11px] text-zinc-500">
-                    {item.sourceWarehouse === 'main' ? 'Main' : 'Noon'} → {item.targetWarehouse === 'noon' ? 'Noon' : 'Main'}
-                    {item.fbnAsnNumber && ` • ASN: ${item.fbnAsnNumber}`}
+                    {warehouses[item.sourceWarehouse].name} → {warehouses[item.targetWarehouse].name}
                   </div>
                 </div>
                 <div className="text-end">
