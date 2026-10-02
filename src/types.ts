@@ -16,8 +16,8 @@ export interface Product {
 export interface InboundShipment {
   id: number;
   warehouseId: number;
-  supplierId: string;
-  productId: string;
+  supplierId: number;
+  productId: number;
   quantity: number;
   unitCost: number;
   totalCost: number;
@@ -28,7 +28,7 @@ export interface InboundShipment {
 
 export interface StockTransfer {
   id: number;
-  productId: string;
+  productId: number;
   sourceWarehouse: number;
   targetWarehouse: number;
   quantity: number;
@@ -41,7 +41,8 @@ export interface Sale {
   productId: number;
   warehouseId: number;
   quantity: number;
-  unitPrice: number;
+  unitCost: number;
+  sellingPrice: number;
   totalRevenue: number;
   saleDate: string;
   status: 'Completed' | 'Returned';
@@ -71,8 +72,8 @@ export interface NoonSettlement {
 export interface Supplier {
   id: number;
   name: string;
-  contact: string;
-  phone: string;
+  contact?: string;
+  phone?: string;
   totalPurchased: number;
   totalPaid: number;
 }

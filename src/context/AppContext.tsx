@@ -17,7 +17,7 @@ import {
   ToastMessage,
 } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
-import { loadFromFile } from '../utils/data-utils';
+import { loadFromFile, saveToFile } from '../utils/data-utils';
 
 interface AppContextType {
   // Navigation & Preferences
@@ -35,45 +35,26 @@ interface AppContextType {
   mainWarehouseId: number;
   setMainWarehouse: (warehouseId: number) => void;
   products: Product[];
-  lowStockProducts: Product[];
+  // lowStockProducts: Product[];
   mainWarehouseStockCount: number;
   noonWarehouseStockCount: number;
-  getProductStock: (product: Product, warehouseId: string) => number;
-  getWarehouseStockCount: (warehouseId: string) => number;
-  addWarehouse: (data: {
-    name: string;
-    nameAr?: string;
-    code?: string;
-    type?: 'Internal' | 'FBN 3PL';
-    location?: string;
-    locationAr?: string;
-    isMain?: boolean;
-  }) => Warehouse;
-  addProduct: (data: {
-    sku?: string;
-    name: string;
-    nameAr?: string;
-    category?: string;
-    categoryAr?: string;
-    unitCost: number;
-    sellingPrice: number;
-    stockMain?: number;
-    stockNoon?: number;
-    minStockAlert?: number;
-  }) => Product;
+  getProductStock: (product: Product, warehouseId: number) => number;
+  getWarehouseStockCount: (warehouseId: number) => number;
+  addWarehouse: (data: Omit<Warehouse, "id">) => Warehouse;
+  addProduct: (data: Omit<Product, "id">) => Product;
 
   // Inbound & Purchases
   inboundShipments: InboundShipment[];
-  addInboundShipment: (shipment: Omit<InboundShipment, 'id' | 'reference' | 'totalCost'>) => void;
+  addInboundShipment: (shipment: Omit<InboundShipment, 'id' | 'totalCost'>) => void;
 
   // Stock Transfers
   transfers: StockTransfer[];
-  addStockTransfer: (transfer: Omit<StockTransfer, 'id' | 'reference'>) => { success: boolean; error?: string };
+  addStockTransfer: (transfer: Omit<StockTransfer, 'id'>) => { success: boolean; error?: string };
 
   // Sales & Returns
   sales: Sale[];
   returns: ReturnItem[];
-  addSale: (sale: Omit<Sale, 'id' | 'orderNumber' | 'totalRevenue' | 'cogs' | 'grossProfit' | 'noonFeeRate' | 'netReceivableAmount' | 'status'>) => { success: boolean; error?: string };
+  addSale: (sale: Omit<Sale, 'id' | 'totalRevenue' | 'noonFeeRate' | 'netReceivableAmount' | 'status'>) => { success: boolean; error?: string };
   addReturn: (ret: Omit<ReturnItem, 'id'>) => void;
 
   // Financials & Ledgers
@@ -81,27 +62,23 @@ interface AppContextType {
   noonSettlements: NoonSettlement[];
   supplierPayments: SupplierPayment[];
   totalSalesRevenue: number;
-  totalCOGS: number;
   netProfit: number;
   noonReceivablesBalance: number;
   supplierPayablesBalance: number;
   addSupplier: (data: {
     name: string;
-    nameAr?: string;
     contact?: string;
     phone?: string;
     initialBalance?: number;
   }) => Supplier;
-  addNoonSettlement: (payout: Omit<NoonSettlement, 'id' | 'reference'>) => void;
-  addSupplierPayment: (payment: Omit<SupplierPayment, 'id' | 'reference'>) => void;
+  addNoonSettlement: (payout: Omit<NoonSettlement, 'id'>) => void;
+  addSupplierPayment: (payment: Omit<SupplierPayment, 'id'>) => void;
 
   // Notifications
   toasts: ToastMessage[];
   addToast: (type: ToastMessage['type'], title: string, message: string) => void;
   removeToast: (id: string) => void;
 
-  // Demo Helpers
-  resetToDefaultData: () => void;
 }
 const warehouseList: Warehouse[] = loadFromFile<Warehouse>("warehouses");
 const productList: Product[] = loadFromFile<Product>("products");
@@ -119,8 +96,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const STORAGE_KEY_PREFIX = 'omnistock_v1_';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isHydrated, setIsHydrated] = useState(false);
-
   // Persisted or default states
   const [lang, setLangState] = useState<Language>('ar');
 
@@ -130,7 +105,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>(warehouseList);
-  const [mainWarehouseId, setMainWarehouseId] = useState<string>('main');
+  const [mainWarehouseId, setMainWarehouseId] = useState<number>(1);
 
   const [products, setProducts] = useState<Product[]>(productList);
   const [suppliers, setSuppliers] = useState<Supplier[]>(supplierList);
@@ -144,55 +119,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Hydrate from localStorage once on client
-  useEffect(() => {
-    try {
-      const savedLang = localStorage.getItem(`${STORAGE_KEY_PREFIX}lang`);
-      if (savedLang) setLangState(savedLang as Language);
-
-      const savedWarehouses = localStorage.getItem(`${STORAGE_KEY_PREFIX}warehouses`);
-      let loadedWarehouses = warehouseList;
-      if (savedWarehouses) {
-        loadedWarehouses = JSON.parse(savedWarehouses);
-        setWarehouses(loadedWarehouses);
-      }
-
-      const savedMainWh = localStorage.getItem(`${STORAGE_KEY_PREFIX}mainWarehouse`);
-      if (savedMainWh) {
-        setMainWarehouseId(savedMainWh);
-      } else {
-        const designated = loadedWarehouses.find(w => w.isMain);
-        if (designated) setMainWarehouseId(designated.id);
-      }
-
-      const savedProducts = localStorage.getItem(`${STORAGE_KEY_PREFIX}products`);
-      if (savedProducts) setProducts(JSON.parse(savedProducts));
-
-      const savedSuppliers = localStorage.getItem(`${STORAGE_KEY_PREFIX}suppliers`);
-      if (savedSuppliers) setSuppliers(JSON.parse(savedSuppliers));
-
-      const savedInbound = localStorage.getItem(`${STORAGE_KEY_PREFIX}inbound`);
-      if (savedInbound) setInboundShipments(JSON.parse(savedInbound));
-
-      const savedTransfers = localStorage.getItem(`${STORAGE_KEY_PREFIX}transfers`);
-      if (savedTransfers) setTransfers(JSON.parse(savedTransfers));
-
-      const savedSales = localStorage.getItem(`${STORAGE_KEY_PREFIX}sales`);
-      if (savedSales) setSales(JSON.parse(savedSales));
-
-      const savedReturns = localStorage.getItem(`${STORAGE_KEY_PREFIX}returns`);
-      if (savedReturns) setReturns(JSON.parse(savedReturns));
-
-      const savedNoon = localStorage.getItem(`${STORAGE_KEY_PREFIX}noonSettlements`);
-      if (savedNoon) setNoonSettlements(JSON.parse(savedNoon));
-
-      const savedPayments = localStorage.getItem(`${STORAGE_KEY_PREFIX}supplierPayments`);
-      if (savedPayments) setSupplierPayments(JSON.parse(savedPayments));
-    } catch (e) {
-      console.error('Failed to load data from localStorage', e);
-    } finally {
-      setIsHydrated(true);
-    }
-  }, []);
+  // useEffect(() => {
+  //   try {
+  //     const savedLang = localStorage.getItem(`${STORAGE_KEY_PREFIX}lang`);
+  //     if (savedLang) setLangState(savedLang as Language);
+  //
+  //     const savedWarehouses = localStorage.getItem(`${STORAGE_KEY_PREFIX}warehouses`);
+  //     let loadedWarehouses = warehouseList;
+  //     if (savedWarehouses) {
+  //       loadedWarehouses = JSON.parse(savedWarehouses);
+  //       setWarehouses(loadedWarehouses);
+  //     }
+  //
+  //     const savedMainWh = localStorage.getItem(`${STORAGE_KEY_PREFIX}mainWarehouse`);
+  //     if (savedMainWh) {
+  //       setMainWarehouseId(savedMainWh);
+  //     } else {
+  //       const designated = loadedWarehouses.find(w => w.isMain);
+  //       if (designated) setMainWarehouseId(designated.id);
+  //     }
+  //
+  //     const savedProducts = localStorage.getItem(`${STORAGE_KEY_PREFIX}products`);
+  //     if (savedProducts) setProducts(JSON.parse(savedProducts));
+  //
+  //     const savedSuppliers = localStorage.getItem(`${STORAGE_KEY_PREFIX}suppliers`);
+  //     if (savedSuppliers) setSuppliers(JSON.parse(savedSuppliers));
+  //
+  //     const savedInbound = localStorage.getItem(`${STORAGE_KEY_PREFIX}inbound`);
+  //     if (savedInbound) setInboundShipments(JSON.parse(savedInbound));
+  //
+  //     const savedTransfers = localStorage.getItem(`${STORAGE_KEY_PREFIX}transfers`);
+  //     if (savedTransfers) setTransfers(JSON.parse(savedTransfers));
+  //
+  //     const savedSales = localStorage.getItem(`${STORAGE_KEY_PREFIX}sales`);
+  //     if (savedSales) setSales(JSON.parse(savedSales));
+  //
+  //     const savedReturns = localStorage.getItem(`${STORAGE_KEY_PREFIX}returns`);
+  //     if (savedReturns) setReturns(JSON.parse(savedReturns));
+  //
+  //     const savedNoon = localStorage.getItem(`${STORAGE_KEY_PREFIX}noonSettlements`);
+  //     if (savedNoon) setNoonSettlements(JSON.parse(savedNoon));
+  //
+  //     const savedPayments = localStorage.getItem(`${STORAGE_KEY_PREFIX}supplierPayments`);
+  //     if (savedPayments) setSupplierPayments(JSON.parse(savedPayments));
+  //   } catch (e) {
+  //     console.error('Failed to load data from localStorage', e);
+  //   } finally {
+  //     setIsHydrated(true);
+  //   }
+  // }, []);
 
   // Apply RTL/LTR and font dynamically
   useEffect(() => {
@@ -200,12 +175,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
       document.documentElement.lang = lang;
     }
-    if (isHydrated && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(`${STORAGE_KEY_PREFIX}lang`, lang);
       } catch { }
     }
-  }, [lang, isHydrated]);
+  }, [lang]);
 
   const setLang = (newLang: Language) => {
     setLangState(newLang);
@@ -213,74 +188,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Persist items
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}warehouses`, JSON.stringify(warehouses));
-    } catch { }
-  }, [warehouses, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(warehouseList, "warehouses");
+  }, [warehouses, mainWarehouseId]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}mainWarehouse`, mainWarehouseId);
-    } catch { }
-  }, [mainWarehouseId, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(productList, "products");
+  }, [products]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}products`, JSON.stringify(products));
-    } catch { }
-  }, [products, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(supplierList, "suppliers");
+  }, [suppliers]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}suppliers`, JSON.stringify(suppliers));
-    } catch { }
-  }, [suppliers, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(inboundShipmentList, "inbound-shipments");
+  }, [inboundShipments]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}inbound`, JSON.stringify(inboundShipments));
-    } catch { }
-  }, [inboundShipments, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(stockTransferList, "stock-transfers");
+  }, [transfers]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}transfers`, JSON.stringify(transfers));
-    } catch { }
-  }, [transfers, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(saleList, "sales");
+  }, [sales]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}sales`, JSON.stringify(sales));
-    } catch { }
-  }, [sales, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(returnItemList, "return-items");
+  }, [returns]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}returns`, JSON.stringify(returns));
-    } catch { }
-  }, [returns, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(noonSettlementList, "noon-settlements");
+  }, [noonSettlements]);
 
   useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}noonSettlements`, JSON.stringify(noonSettlements));
-    } catch { }
-  }, [noonSettlements, isHydrated]);
-
-  useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}supplierPayments`, JSON.stringify(supplierPayments));
-    } catch { }
-  }, [supplierPayments, isHydrated]);
+    if (typeof window === 'undefined') return;
+    saveToFile(supplierPaymentList, "supplier-payments");
+  }, [supplierPayments]);
 
   // Translation lookup
   const t = TRANSLATIONS[lang];
@@ -309,22 +259,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Helper: Retrieve Stock for a product in any warehouse
-  const getProductStock = (product: Product, warehouseId: string): number => {
-    if (product.warehouseStocks && product.warehouseStocks[warehouseId] !== undefined) {
-      return product.warehouseStocks[warehouseId];
+  const getProductStock = (product: Product, warehouseId: number): number => {
+    if (product.stock[warehouseId] !== undefined) {
+      return product.stock[warehouseId];
     }
-    if (warehouseId === 'main') return product.stockMain;
-    if (warehouseId === 'noon') return product.stockNoon;
     return 0;
   };
 
   // Helper: Retrieve Total Stock across all products in a warehouse
-  const getWarehouseStockCount = (warehouseId: string): number => {
+  const getWarehouseStockCount = (warehouseId: number): number => {
     return products.reduce((acc, p) => acc + getProductStock(p, warehouseId), 0);
   };
 
   // Set Main Warehouse Logic
-  const setMainWarehouse = (warehouseId: string) => {
+  const setMainWarehouse = (warehouseId: number) => {
     setMainWarehouseId(warehouseId);
     setWarehouses(prev =>
       prev.map(wh => ({
@@ -333,7 +281,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }))
     );
     const targetWh = warehouses.find(w => w.id === warehouseId);
-    const whName = targetWh ? (lang === 'ar' ? targetWh.nameAr : targetWh.name) : warehouseId;
+    const whName = targetWh ? (lang === 'ar' ? targetWh.name : targetWh.name) : warehouseId;
     addToast(
       'success',
       t.confirmed,
@@ -348,23 +296,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     name: string;
     nameAr?: string;
     code?: string;
-    type?: 'Internal' | 'FBN 3PL';
+    type?: 'Internal' | 'Noon';
     location?: string;
     locationAr?: string;
     isMain?: boolean;
   }): Warehouse => {
-    const id = `wh-${Date.now()}`;
-    const generatedCode = data.code?.trim().toUpperCase() || `WH-0${warehouses.length + 1}`;
+    const id = warehouses.length + 1;
     const shouldBeMain = !!data.isMain || warehouses.length === 0;
 
     const newWarehouse: Warehouse = {
       id,
       name: data.name.trim(),
-      nameAr: data.nameAr?.trim() || data.name.trim(),
-      code: generatedCode,
       type: data.type || 'Internal',
-      location: data.location?.trim() || 'Cairo / Egypt',
-      locationAr: data.locationAr?.trim() || (lang === 'ar' ? 'مصر' : 'Cairo / Egypt'),
       isMain: shouldBeMain,
     };
 
@@ -380,9 +323,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Inbound Stock Logic
-  const addInboundShipment = (data: Omit<InboundShipment, 'id' | 'reference' | 'totalCost'>) => {
+  const addInboundShipment = (data: Omit<InboundShipment, 'id' | 'totalCost'>) => {
     const totalCost = data.quantity * data.unitCost;
-    const refNum = `PO-${new Date().getFullYear()}-${String(inboundShipments.length + 85).padStart(3, '0')}`;
 
     let paidAmount = 0;
     let addedBalance = totalCost;
@@ -401,8 +343,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newShipment: InboundShipment = {
       ...data,
-      id: `inb-${Date.now()}`,
-      reference: refNum,
+      id: inboundShipments.length + 1,
       totalCost,
       paidAmount,
     };
@@ -411,17 +352,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts(prevProducts =>
       prevProducts.map(prod => {
         if (prod.id === data.productId) {
-          const currentWhStock = getProductStock(prod, data.targetWarehouse);
+          const currentWhStock = getProductStock(prod, data.warehouseId);
           const newWhStock = currentWhStock + data.quantity;
           const updatedStocks = {
-            ...(prod.warehouseStocks || { main: prod.stockMain, noon: prod.stockNoon }),
-            [data.targetWarehouse]: newWhStock,
+            ...(prod.stock),
+            [data.warehouseId]: newWhStock,
           };
           return {
             ...prod,
             unitCost: data.unitCost, // Update latest unit cost
-            stockMain: data.targetWarehouse === 'main' ? newWhStock : prod.stockMain,
-            stockNoon: data.targetWarehouse === 'noon' ? newWhStock : prod.stockNoon,
             warehouseStocks: updatedStocks,
           };
         }
@@ -432,12 +371,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 2. Update Supplier Accounts Payable & totals
     setSuppliers(prevSuppliers =>
       prevSuppliers.map(sup => {
-        if (sup.id === data.supplierId || sup.name === data.supplierName) {
+        if (sup.id === data.supplierId) {
           return {
             ...sup,
             totalPurchased: sup.totalPurchased + totalCost,
             totalPaid: sup.totalPaid + paidAmount,
-            currentBalance: sup.currentBalance + addedBalance,
           };
         }
         return sup;
@@ -446,16 +384,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 3. If upfront cash was paid (Partial or Paid), record it in the supplier payments log
     if (paidAmount > 0) {
-      const payRef = `PAY-ADV-${String(supplierPayments.length + 50).padStart(3, '0')}`;
       const advancePayment: SupplierPayment = {
-        id: `pay-${Date.now()}`,
-        reference: payRef,
+        id: supplierPayments.length + 1,
         supplierId: data.supplierId,
-        supplierName: data.supplierName,
         amount: paidAmount,
-        paymentMethod: 'Cash / Direct Advance',
         date: data.purchaseDate,
-        notes: `Advance cash payment for inbound PO ${refNum}`,
       };
       setSupplierPayments(prev => [advancePayment, ...prev]);
     }
@@ -465,7 +398,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Transfer Stock Logic
-  const addStockTransfer = (data: Omit<StockTransfer, 'id' | 'reference'>) => {
+  const addStockTransfer = (data: Omit<StockTransfer, 'id'>) => {
     const product = products.find(p => p.id === data.productId);
     if (!product) {
       return { success: false, error: 'Product not found' };
@@ -484,16 +417,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const srcStock = getProductStock(p, data.sourceWarehouse) - data.quantity;
           const tgtStock = getProductStock(p, data.targetWarehouse) + data.quantity;
           const updatedStocks = {
-            ...(p.warehouseStocks || { main: p.stockMain, noon: p.stockNoon }),
+            ...(p.stock),
             [data.sourceWarehouse]: srcStock,
             [data.targetWarehouse]: tgtStock,
           };
           return {
             ...p,
-            stockMain:
-              data.sourceWarehouse === 'main' ? srcStock : data.targetWarehouse === 'main' ? tgtStock : p.stockMain,
-            stockNoon:
-              data.sourceWarehouse === 'noon' ? srcStock : data.targetWarehouse === 'noon' ? tgtStock : p.stockNoon,
             warehouseStocks: updatedStocks,
           };
         }
@@ -501,11 +430,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
-    const refNum = `TR-${String(transfers.length + 45).padStart(3, '0')}`;
     const newTransfer: StockTransfer = {
       ...data,
-      id: `tr-${Date.now()}`,
-      reference: refNum,
+      id: transfers.length + 1,
     };
 
     setTransfers(prev => [newTransfer, ...prev]);
@@ -514,13 +441,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Sales Logic
-  const addSale = (data: Omit<Sale, 'id' | 'orderNumber' | 'totalRevenue' | 'cogs' | 'grossProfit' | 'noonFeeRate' | 'netReceivableAmount' | 'status'>) => {
+  const addSale = (data: Omit<Sale, 'id' | 'totalRevenue' | 'noonFeeRate' | 'netReceivableAmount' | 'status'>) => {
     const product = products.find(p => p.id === data.productId);
     if (!product) {
       return { success: false, error: 'Product not found' };
     }
 
-    const sourceStock = getProductStock(product, data.sourceWarehouse);
+    const sourceStock = getProductStock(product, data.warehouseId);
     if (sourceStock < data.quantity) {
       addToast('error', t.critical, t.insufficientStock);
       return { success: false, error: t.insufficientStock };
@@ -529,7 +456,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const totalRevenue = data.quantity * data.sellingPrice;
     const cogs = data.quantity * (data.unitCost || product.unitCost);
     const grossProfit = totalRevenue - cogs;
-    const isNoon = data.sourceWarehouse === 'noon' || data.channel === 'Noon FBN';
+    const isNoon = warehouses[data.warehouseId].type === "Noon";
     const noonFeeRate = isNoon ? 0.11 : 0; // 11% average Noon commission + pick & pack
     const netReceivableAmount = isNoon ? totalRevenue * (1 - noonFeeRate) : 0;
 
@@ -537,15 +464,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProducts(prevProducts =>
       prevProducts.map(p => {
         if (p.id === data.productId) {
-          const newWhStock = getProductStock(p, data.sourceWarehouse) - data.quantity;
+          const newWhStock = getProductStock(p, data.warehouseId) - data.quantity;
           const updatedStocks = {
-            ...(p.warehouseStocks || { main: p.stockMain, noon: p.stockNoon }),
-            [data.sourceWarehouse]: newWhStock,
+            ...(p.stock),
+            [data.warehouseId]: newWhStock,
           };
           return {
             ...p,
-            stockMain: data.sourceWarehouse === 'main' ? newWhStock : p.stockMain,
-            stockNoon: data.sourceWarehouse === 'noon' ? newWhStock : p.stockNoon,
             warehouseStocks: updatedStocks,
           };
         }
@@ -553,16 +478,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
-    const prefix = isNoon ? 'NON-ORD' : 'DIR-ORD';
-    const orderNumber = `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
-
     const newSale: Sale = {
       ...data,
-      id: `sale-${Date.now()}`,
-      orderNumber,
+      id: sales.length + 1,
       totalRevenue,
-      cogs,
-      grossProfit,
       noonFeeRate,
       netReceivableAmount,
       status: 'Completed',
@@ -577,7 +496,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addReturn = (retData: Omit<ReturnItem, 'id'>) => {
     const newReturn: ReturnItem = {
       ...retData,
-      id: `ret-${Date.now()}`,
+      id: returns.length + 1,
     };
 
     // If sellable and restock requested, return to stock
@@ -585,15 +504,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setProducts(prevProducts =>
         prevProducts.map(p => {
           if (p.id === retData.productId) {
-            const newWhStock = getProductStock(p, retData.targetWarehouse) + retData.quantity;
+            const newWhStock = getProductStock(p, retData.warehouseId) + retData.quantity;
             const updatedStocks = {
-              ...(p.warehouseStocks || { main: p.stockMain, noon: p.stockNoon }),
-              [retData.targetWarehouse]: newWhStock,
+              ...(p.stock),
+              [retData.warehouseId]: newWhStock,
             };
             return {
               ...p,
-              stockMain: retData.targetWarehouse === 'main' ? newWhStock : p.stockMain,
-              stockNoon: retData.targetWarehouse === 'noon' ? newWhStock : p.stockNoon,
               warehouseStocks: updatedStocks,
             };
           }
@@ -607,12 +524,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Noon Settlement Payout Logic
-  const addNoonSettlement = (payout: Omit<NoonSettlement, 'id' | 'reference'>) => {
-    const ref = `SET-NOON-${Math.floor(1000 + Math.random() * 9000)}`;
+  const addNoonSettlement = (payout: Omit<NoonSettlement, 'id'>) => {
     const newSettlement: NoonSettlement = {
       ...payout,
-      id: `set-${Date.now()}`,
-      reference: ref,
+      id: noonSettlements.length + 1,
     };
     setNoonSettlements(prev => [newSettlement, ...prev]);
     addToast('success', t.confirmed, t.payoutSuccess);
@@ -620,20 +535,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Supplier Payment Logic
   const addSupplierPayment = (payment: Omit<SupplierPayment, 'id' | 'reference'>) => {
-    const ref = `PAY-SUP-${String(supplierPayments.length + 50).padStart(3, '0')}`;
     const newPayment: SupplierPayment = {
       ...payment,
-      id: `pay-${Date.now()}`,
-      reference: ref,
+      id: supplierPayments.length + 1,
     };
 
     setSuppliers(prevSuppliers =>
       prevSuppliers.map(sup => {
-        if (sup.id === payment.supplierId || sup.name === payment.supplierName) {
+        if (sup.id === payment.supplierId) {
           return {
             ...sup,
             totalPaid: sup.totalPaid + payment.amount,
-            currentBalance: Math.max(0, sup.currentBalance - payment.amount),
           };
         }
         return sup;
@@ -654,14 +566,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }): Supplier => {
     const initialBal = Math.max(0, Number(data.initialBalance) || 0);
     const newSupplier: Supplier = {
-      id: `sup-${Date.now()}`,
+      id: suppliers.length + 1,
       name: data.name.trim(),
-      nameAr: (data.nameAr && data.nameAr.trim()) ? data.nameAr.trim() : data.name.trim(),
       contact: data.contact?.trim() || '',
       phone: data.phone?.trim() || '',
       totalPurchased: initialBal,
       totalPaid: 0,
-      currentBalance: initialBal,
     };
 
     setSuppliers(prev => [newSupplier, ...prev]);
@@ -671,30 +581,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Add Product Logic
   const addProduct = (data: {
-    sku?: string;
     name: string;
-    nameAr?: string;
-    category?: string;
-    categoryAr?: string;
     unitCost: number;
     sellingPrice: number;
-    stockMain?: number;
-    stockNoon?: number;
-    minStockAlert?: number;
   }): Product => {
-    const cleanSku = data.sku?.trim() || `SKU-${Date.now().toString().slice(-5)}`;
     const newProduct: Product = {
-      id: `prod-${Date.now()}`,
-      sku: cleanSku.toUpperCase(),
+      id: products.length + 1,
       name: data.name.trim(),
-      nameAr: (data.nameAr && data.nameAr.trim()) ? data.nameAr.trim() : data.name.trim(),
-      category: data.category?.trim() || 'General',
-      categoryAr: data.categoryAr?.trim() || (lang === 'ar' ? 'عام' : 'General'),
       unitCost: Math.max(0, Number(data.unitCost) || 0),
       sellingPrice: Math.max(0, Number(data.sellingPrice) || 0),
-      stockMain: Math.max(0, Number(data.stockMain) || 0),
-      stockNoon: Math.max(0, Number(data.stockNoon) || 0),
-      minStockAlert: Math.max(1, Number(data.minStockAlert) || 10),
+      stock: {}
     };
 
     setProducts(prev => [newProduct, ...prev]);
@@ -702,47 +598,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newProduct;
   };
 
-  // Calculated Aggregate Values
-  const mainWarehouseStockCount = products.reduce((acc, p) => acc + p.stockMain, 0);
-  const noonWarehouseStockCount = products.reduce((acc, p) => acc + p.stockNoon, 0);
+  // get stock count in main warehouses
+  const getMainWarehouseStock = (stock: Record<number, number>): number => {
+    let ans = 0;
+    Object.entries(stock).forEach(([k, v]) => {
+      if (warehouses[Number(k)].isMain) {
+        ans += v;
+      }
+    });
+    return ans;
+  };
 
-  const lowStockProducts = products.filter(
-    p => p.stockMain <= p.minStockAlert || p.stockNoon <= p.minStockAlert
-  );
+  // get stock count in noon warehouses
+  const getNoonWarehouseStock = (stock: Record<number, number>): number => {
+    let ans = 0;
+    Object.entries(stock).forEach(([k, v]) => {
+      if (warehouses[Number(k)].type === "Noon") {
+        ans += v;
+      }
+    });
+    return ans;
+  };
+
+  // Calculated Aggregate Values
+  const mainWarehouseStockCount = products.reduce((acc, p) => acc + getMainWarehouseStock(p.stock), 0);
+  const noonWarehouseStockCount = products.reduce((acc, p) => acc + getNoonWarehouseStock(p.stock), 0);
 
   const totalSalesRevenue = sales.reduce((acc, s) => acc + s.totalRevenue, 0);
-  const totalCOGS = sales.reduce((acc, s) => acc + s.cogs, 0);
   const totalRefunds = returns.reduce((acc, r) => acc + r.refundAmount, 0);
-  const totalNoonFees = sales.filter(s => s.sourceWarehouse === 'noon').reduce((acc, s) => acc + (s.totalRevenue * s.noonFeeRate), 0);
-  const netProfit = totalSalesRevenue - totalCOGS - totalNoonFees - totalRefunds;
+  const totalNoonFees = sales.filter(s => warehouses[s.warehouseId].type === "Noon").reduce((acc, s) => acc + (s.totalRevenue * s.noonFeeRate), 0);
+  const netProfit = totalSalesRevenue - totalNoonFees - totalRefunds;
 
   // Noon Receivables:
   // Base initial starting ledger balance + all net receivables from Noon sales - all payouts received
-  const initialNoonSalesNet = 2400.33 + 1580.48 + 1282.5 + 47500; // Prior cycles + seed sales
+  const initialNoonSalesNet = 0;
   const totalNoonSalesReceivables = sales
-    .filter(s => s.sourceWarehouse === 'noon')
+    .filter(s => warehouses[s.warehouseId].type === "Noon")
     .reduce((acc, s) => acc + s.netReceivableAmount, 0);
   const totalNoonPayouts = noonSettlements.reduce((acc, p) => acc + p.amount, 0);
   // Net balance: positive represents money currently owed by Noon to the seller
   const noonReceivablesBalance = Math.max(0, (initialNoonSalesNet + totalNoonSalesReceivables) - totalNoonPayouts);
 
   // Supplier Payables: Sum of current balances across all suppliers
-  const supplierPayablesBalance = suppliers.reduce((acc, s) => acc + s.currentBalance, 0);
-
-  // Reset to Default Demo Data
-  const resetToDefaultData = () => {
-    setWarehouses(warehouseList);
-    setMainWarehouseId('main');
-    setProducts(productList);
-    setSuppliers(supplierList);
-    setInboundShipments(inboundShipmentList);
-    setTransfers(stockTransferList);
-    setSales(saleList);
-    setReturns(returnItemList);
-    setNoonSettlements(noonSettlementList);
-    setSupplierPayments(supplierPaymentList);
-    addToast('info', t.resetDemo, 'All demo inventory and ledger data restored to initial state.');
-  };
+  const supplierPayablesBalance = suppliers.reduce((acc, s) => acc + (s.totalPurchased - s.totalPaid), 0);
 
   return (
     <AppContext.Provider
@@ -763,7 +661,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProduct,
         getProductStock,
         getWarehouseStockCount,
-        lowStockProducts,
         mainWarehouseStockCount,
         noonWarehouseStockCount,
         inboundShipments,
@@ -778,7 +675,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         noonSettlements,
         supplierPayments,
         totalSalesRevenue,
-        totalCOGS,
         netProfit,
         noonReceivablesBalance,
         supplierPayablesBalance,
@@ -788,7 +684,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toasts,
         addToast,
         removeToast,
-        resetToDefaultData,
       }}
     >
       {children}
