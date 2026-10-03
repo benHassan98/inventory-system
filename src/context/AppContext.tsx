@@ -80,29 +80,13 @@ interface AppContextType {
   removeToast: (id: string) => void;
 
 }
-const warehouseList: Warehouse[] = await loadFromFile<Warehouse>("warehouses");
-const productList: Product[] = await loadFromFile<Product>("products");
-const supplierList: Supplier[] = await loadFromFile<Supplier>("suppliers");
-const inboundShipmentList: InboundShipment[] = await loadFromFile<InboundShipment>("inbound-shipments");
-const stockTransferList: StockTransfer[] = await loadFromFile<StockTransfer>("stock-transfers");
-const saleList: Sale[] = await loadFromFile<Sale>("sales");
-const returnItemList: ReturnItem[] = await loadFromFile<ReturnItem>("return-items");
-const noonSettlementList: NoonSettlement[] = await loadFromFile<NoonSettlement>("noon-settlements");
-const supplierPaymentList: SupplierPayment[] = await loadFromFile<SupplierPayment>("supplier-payments");
-
-const getMainWarehouseId = (): number => {
-  const mainWarehouse = warehouseList.filter(w => w.isMain);
-  if (!mainWarehouse.length) {
-    return -1;
-  }
-  return mainWarehouse[0].id;
-};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEY_PREFIX = 'omnistock_v1_';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [hydrate, setIsHydrated] = useState<boolean>(false);
   // Persisted or default states
   const [lang, setLangState] = useState<Language>('ar');
 
@@ -111,70 +95,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(warehouseList);
-  const [mainWarehouseId, setMainWarehouseId] = useState<number>(getMainWarehouseId());
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [mainWarehouseId, setMainWarehouseId] = useState<number>(-1);
 
-  const [products, setProducts] = useState<Product[]>(productList);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(supplierList);
-  const [inboundShipments, setInboundShipments] = useState<InboundShipment[]>(inboundShipmentList);
-  const [transfers, setTransfers] = useState<StockTransfer[]>(stockTransferList);
-  const [sales, setSales] = useState<Sale[]>(saleList);
-  const [returns, setReturns] = useState<ReturnItem[]>(returnItemList);
-  const [noonSettlements, setNoonSettlements] = useState<NoonSettlement[]>(noonSettlementList);
-  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>(supplierPaymentList);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [inboundShipments, setInboundShipments] = useState<InboundShipment[]>([]);
+  const [transfers, setTransfers] = useState<StockTransfer[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [returns, setReturns] = useState<ReturnItem[]>([]);
+  const [noonSettlements, setNoonSettlements] = useState<NoonSettlement[]>([]);
+  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>([]);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Hydrate from localStorage once on client
-  // useEffect(() => {
-  //   try {
-  //     const savedLang = localStorage.getItem(`${STORAGE_KEY_PREFIX}lang`);
-  //     if (savedLang) setLangState(savedLang as Language);
-  //
-  //     const savedWarehouses = localStorage.getItem(`${STORAGE_KEY_PREFIX}warehouses`);
-  //     let loadedWarehouses = warehouseList;
-  //     if (savedWarehouses) {
-  //       loadedWarehouses = JSON.parse(savedWarehouses);
-  //       setWarehouses(loadedWarehouses);
-  //     }
-  //
-  //     const savedMainWh = localStorage.getItem(`${STORAGE_KEY_PREFIX}mainWarehouse`);
-  //     if (savedMainWh) {
-  //       setMainWarehouseId(savedMainWh);
-  //     } else {
-  //       const designated = loadedWarehouses.find(w => w.isMain);
-  //       if (designated) setMainWarehouseId(designated.id);
-  //     }
-  //
-  //     const savedProducts = localStorage.getItem(`${STORAGE_KEY_PREFIX}products`);
-  //     if (savedProducts) setProducts(JSON.parse(savedProducts));
-  //
-  //     const savedSuppliers = localStorage.getItem(`${STORAGE_KEY_PREFIX}suppliers`);
-  //     if (savedSuppliers) setSuppliers(JSON.parse(savedSuppliers));
-  //
-  //     const savedInbound = localStorage.getItem(`${STORAGE_KEY_PREFIX}inbound`);
-  //     if (savedInbound) setInboundShipments(JSON.parse(savedInbound));
-  //
-  //     const savedTransfers = localStorage.getItem(`${STORAGE_KEY_PREFIX}transfers`);
-  //     if (savedTransfers) setTransfers(JSON.parse(savedTransfers));
-  //
-  //     const savedSales = localStorage.getItem(`${STORAGE_KEY_PREFIX}sales`);
-  //     if (savedSales) setSales(JSON.parse(savedSales));
-  //
-  //     const savedReturns = localStorage.getItem(`${STORAGE_KEY_PREFIX}returns`);
-  //     if (savedReturns) setReturns(JSON.parse(savedReturns));
-  //
-  //     const savedNoon = localStorage.getItem(`${STORAGE_KEY_PREFIX}noonSettlements`);
-  //     if (savedNoon) setNoonSettlements(JSON.parse(savedNoon));
-  //
-  //     const savedPayments = localStorage.getItem(`${STORAGE_KEY_PREFIX}supplierPayments`);
-  //     if (savedPayments) setSupplierPayments(JSON.parse(savedPayments));
-  //   } catch (e) {
-  //     console.error('Failed to load data from localStorage', e);
-  //   } finally {
-  //     setIsHydrated(true);
-  //   }
-  // }, []);
+  useEffect(() => {
+    const asyncWrapper = async () => {
+      const warehouseList: Warehouse[] = await loadFromFile<Warehouse>("warehouses");
+      const productList: Product[] = await loadFromFile<Product>("products");
+      const supplierList: Supplier[] = await loadFromFile<Supplier>("suppliers");
+      const inboundShipmentList: InboundShipment[] = await loadFromFile<InboundShipment>("inbound-shipments");
+      const stockTransferList: StockTransfer[] = await loadFromFile<StockTransfer>("stock-transfers");
+      const saleList: Sale[] = await loadFromFile<Sale>("sales");
+      const returnItemList: ReturnItem[] = await loadFromFile<ReturnItem>("return-items");
+      const noonSettlementList: NoonSettlement[] = await loadFromFile<NoonSettlement>("noon-settlements");
+      const supplierPaymentList: SupplierPayment[] = await loadFromFile<SupplierPayment>("supplier-payments");
+      const getMainWarehouseId = (): number => {
+        const mainWarehouse = warehouseList.filter(w => w.isMain);
+        if (!mainWarehouse.length) {
+          return -1;
+        }
+        return mainWarehouse[0].id;
+      };
+
+      setWarehouses(warehouseList);
+      setMainWarehouseId(getMainWarehouseId());
+      setProducts(productList);
+      setSuppliers(supplierList);
+      setInboundShipments(inboundShipmentList);
+      setTransfers(stockTransferList);
+      setSales(saleList);
+      setReturns(returnItemList);
+      setNoonSettlements(noonSettlementList);
+      setSupplierPayments(supplierPaymentList);
+
+      setIsHydrated(true);
+    };
+    asyncWrapper();
+  }, []);
 
   // Apply RTL/LTR and font dynamically
   useEffect(() => {
@@ -196,48 +165,91 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Persist items
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(warehouseList, "warehouses");
-  }, [warehouses, mainWarehouseId]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(warehouses, "warehouses");
+      }
+    };
+    asyncWrapper();
+  }, [warehouses, mainWarehouseId, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(productList, "products");
-  }, [products]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(products, "products");
+      }
+    };
+    asyncWrapper();
+  }, [products, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(supplierList, "suppliers");
-  }, [suppliers]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(suppliers, "suppliers");
+      }
+    };
+    asyncWrapper();
+  }, [suppliers, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(inboundShipmentList, "inbound-shipments");
-  }, [inboundShipments]);
+    const asyncWrapper = async () => {
+      await saveToFile(inboundShipments, "inbound-shipments");
+    };
+    asyncWrapper();
+  }, [inboundShipments, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(stockTransferList, "stock-transfers");
-  }, [transfers]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(transfers, "stock-transfers");
+      }
+    };
+    asyncWrapper();
+  }, [transfers, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(saleList, "sales");
-  }, [sales]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(sales, "sales");
+      }
+    };
+    asyncWrapper();
+  }, [sales, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(returnItemList, "return-items");
-  }, [returns]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(returns, "return-items");
+      }
+    };
+    asyncWrapper();
+  }, [returns, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(noonSettlementList, "noon-settlements");
-  }, [noonSettlements]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(noonSettlements, "noon-settlements");
+      }
+    };
+    asyncWrapper();
+  }, [noonSettlements, hydrate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    saveToFile(supplierPaymentList, "supplier-payments");
-  }, [supplierPayments]);
+    const asyncWrapper = async () => {
+      if (hydrate) {
+        await saveToFile(supplierPayments, "supplier-payments");
+      }
+      asyncWrapper();
+    };
+  }, [supplierPayments, hydrate]);
 
   // Translation lookup
   const t = TRANSLATIONS[lang];
