@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { WarehouseId } from '../types';
-import { ArrowRightLeft, Search, AlertTriangle, Building2, Store, PackagePlus, Plus, Check, Star } from 'lucide-react';
+import { ArrowRightLeft, Search, Building2, Store, PackagePlus, Plus, Check, Star } from 'lucide-react';
 
 export const WarehouseTransfers: React.FC = () => {
   const {
@@ -24,12 +23,12 @@ export const WarehouseTransfers: React.FC = () => {
 
   // Transfer Form toggle & state
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [productId, setProductId] = useState<string>(products[0]?.id || '');
-  const [sourceWarehouse, setSourceWarehouse] = useState<WarehouseId>(mainWarehouseId || warehouses[0]?.id || 'main');
-  const [targetWarehouse, setTargetWarehouse] = useState<WarehouseId>(
-    warehouses.find(w => w.id !== (mainWarehouseId || warehouses[0]?.id))?.id || 'noon'
+  const [productId, setProductId] = useState<number>(products.length ? products[0].id : -1);
+  const [sourceWarehouse, setSourceWarehouse] = useState<number>(mainWarehouseId);
+  const [targetWarehouse, setTargetWarehouse] = useState<number>(
+    warehouses.find(w => w.id !== (mainWarehouseId || warehouses[0].id)).id
   );
-  const [quantity, setQuantity] = useState<number>(20);
+  const [quantity, setQuantity] = useState<number>(0);
   const [fbnAsnNumber, setFbnAsnNumber] = useState<string>('');
   const [transferDate, setTransferDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState<string>('');
@@ -37,24 +36,14 @@ export const WarehouseTransfers: React.FC = () => {
 
   // Add Product Form state
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
-  const [newSku, setNewSku] = useState('');
   const [newName, setNewName] = useState('');
-  const [newNameAr, setNewNameAr] = useState('');
-  const [newCategory, setNewCategory] = useState('Electronics');
   const [newUnitCost, setNewUnitCost] = useState<number>(100);
   const [newSellingPrice, setNewSellingPrice] = useState<number>(180);
-  const [newStockMain, setNewStockMain] = useState<number>(0);
-  const [newStockNoon, setNewStockNoon] = useState<number>(0);
-  const [newMinAlert, setNewMinAlert] = useState<number>(10);
 
   // Add Warehouse Form state
   const [isAddWarehouseOpen, setIsAddWarehouseOpen] = useState(false);
   const [newWhName, setNewWhName] = useState('');
-  const [newWhNameAr, setNewWhNameAr] = useState('');
-  const [newWhCode, setNewWhCode] = useState('');
-  const [newWhType, setNewWhType] = useState<'Internal' | 'FBN 3PL'>('Internal');
-  const [newWhLocation, setNewWhLocation] = useState('');
-  const [newWhLocationAr, setNewWhLocationAr] = useState('');
+  const [newWhType, setNewWhType] = useState<'Noon' | 'Internal'>('Internal');
   const [newWhIsMain, setNewWhIsMain] = useState(false);
 
   // Table search
@@ -63,10 +52,10 @@ export const WarehouseTransfers: React.FC = () => {
   const selectedProduct = products.find(p => p.id === productId);
   const availableSourceStock = selectedProduct ? getProductStock(selectedProduct, sourceWarehouse) : 0;
 
-  const openTransferForProduct = (prodId: string, defaultSource?: WarehouseId) => {
+  const openTransferForProduct = (prodId: number, defaultSource?: number) => {
     setProductId(prodId);
-    const src = defaultSource || warehouses[0]?.id || 'main';
-    const tgt = warehouses.find(w => w.id !== src)?.id || warehouses[1]?.id || 'noon';
+    const src = defaultSource || warehouses[0]?.id;
+    const tgt = warehouses.find(w => w.id !== src)?.id || warehouses[1]?.id;
     setSourceWarehouse(src);
     setTargetWarehouse(tgt);
     setIsFormOpen(true);
@@ -75,7 +64,7 @@ export const WarehouseTransfers: React.FC = () => {
     setErrorMsg('');
   };
 
-  const handleSourceChange = (src: WarehouseId) => {
+  const handleSourceChange = (src: number) => {
     setSourceWarehouse(src);
     if (targetWarehouse === src) {
       const altTarget = warehouses.find(w => w.id !== src);
@@ -90,21 +79,13 @@ export const WarehouseTransfers: React.FC = () => {
 
     const createdWh = addWarehouse({
       name: newWhName,
-      nameAr: newWhNameAr,
-      code: newWhCode,
       type: newWhType,
-      location: newWhLocation,
-      locationAr: newWhLocationAr,
       isMain: newWhIsMain,
     });
 
     setTargetWarehouse(createdWh.id);
     setNewWhName('');
-    setNewWhNameAr('');
-    setNewWhCode('');
     setNewWhType('Internal');
-    setNewWhLocation('');
-    setNewWhLocationAr('');
     setNewWhIsMain(false);
     setIsAddWarehouseOpen(false);
   };
@@ -114,27 +95,16 @@ export const WarehouseTransfers: React.FC = () => {
     if (!newName.trim()) return;
 
     const created = addProduct({
-      sku: newSku,
       name: newName,
-      nameAr: newNameAr,
-      category: newCategory,
       unitCost: Number(newUnitCost),
       sellingPrice: Number(newSellingPrice),
-      stockMain: Number(newStockMain),
-      stockNoon: Number(newStockNoon),
-      minStockAlert: Number(newMinAlert),
+      stock: {}
     });
 
     setProductId(created.id);
-    setNewSku('');
     setNewName('');
-    setNewNameAr('');
-    setNewCategory('Electronics');
     setNewUnitCost(100);
     setNewSellingPrice(180);
-    setNewStockMain(0);
-    setNewStockNoon(0);
-    setNewMinAlert(10);
     setIsAddProductOpen(false);
   };
 
@@ -149,15 +119,11 @@ export const WarehouseTransfers: React.FC = () => {
 
     const res = addStockTransfer({
       productId: selectedProduct.id,
-      productName: lang === 'ar' ? selectedProduct.nameAr : selectedProduct.name,
-      sku: selectedProduct.sku,
       sourceWarehouse,
       targetWarehouse,
       quantity: Number(quantity),
       status: 'Completed',
-      fbnAsnNumber: fbnAsnNumber.trim() || undefined,
       transferDate,
-      notes: notes.trim() || undefined,
     });
 
     if (res.success) {
@@ -171,9 +137,7 @@ export const WarehouseTransfers: React.FC = () => {
   };
 
   const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.nameAr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchQuery.toLowerCase())
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -226,32 +190,30 @@ export const WarehouseTransfers: React.FC = () => {
       {/* Dynamic Warehouse Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {warehouses.map(wh => {
-          const is3pl = wh.type === 'FBN 3PL';
+          const isNoon = wh.type === 'Noon';
           const isMain = wh.id === mainWarehouseId || wh.isMain;
           const count = getWarehouseStockCount(wh.id);
           return (
             <div
               key={wh.id}
-              className={`p-3.5 bg-zinc-900 border rounded-lg flex flex-col justify-between transition-colors shadow-xs ${
-                isMain
-                  ? 'border-amber-500/50 ring-1 ring-amber-500/20 bg-linear-to-b from-zinc-900 via-zinc-900 to-amber-950/15'
-                  : 'border-zinc-800 hover:border-zinc-700'
-              }`}
+              className={`p-3.5 bg-zinc-900 border rounded-lg flex flex-col justify-between transition-colors shadow-xs ${isMain
+                ? 'border-amber-500/50 ring-1 ring-amber-500/20 bg-linear-to-b from-zinc-900 via-zinc-900 to-amber-950/15'
+                : 'border-zinc-800 hover:border-zinc-700'
+                }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div
-                    className={`p-1.5 rounded-md ${
-                      isMain
-                        ? 'bg-amber-400/20 text-amber-300'
-                        : is3pl
+                    className={`p-1.5 rounded-md ${isMain
+                      ? 'bg-amber-400/20 text-amber-300'
+                      : isNoon
                         ? 'bg-amber-950/50 text-amber-400'
                         : 'bg-sky-950/50 text-sky-400'
-                    }`}
+                      }`}
                   >
                     {isMain ? (
                       <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    ) : is3pl ? (
+                    ) : isNoon ? (
                       <Store className="w-4 h-4" />
                     ) : (
                       <Building2 className="w-4 h-4" />
@@ -259,10 +221,7 @@ export const WarehouseTransfers: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-xs font-semibold text-zinc-100 block">
-                      {lang === 'ar' ? wh.nameAr : wh.name}
-                    </span>
-                    <span className="text-[11px] text-zinc-500 font-mono">
-                      {wh.code} • {lang === 'ar' ? wh.locationAr : wh.location}
+                      {wh.name}
                     </span>
                   </div>
                 </div>
@@ -275,13 +234,12 @@ export const WarehouseTransfers: React.FC = () => {
                     </span>
                   )}
                   <span
-                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 ${
-                      is3pl
-                        ? 'bg-amber-950/60 text-amber-300 border-amber-800/60'
-                        : 'bg-sky-950/60 text-sky-300 border-sky-800/60'
-                    }`}
+                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded border shrink-0 ${isNoon
+                      ? 'bg-amber-950/60 text-amber-300 border-amber-800/60'
+                      : 'bg-sky-950/60 text-sky-300 border-sky-800/60'
+                      }`}
                   >
-                    {is3pl ? '3PL / FBN' : 'Internal'}
+                    {isNoon ? 'Noon' : 'Internal'}
                   </span>
                 </div>
               </div>
@@ -359,65 +317,17 @@ export const WarehouseTransfers: React.FC = () => {
               />
             </div>
 
-            {/* Name AR */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.warehouseNameArLabel}</label>
-              <input
-                type="text"
-                placeholder="مثال: مستودع الإسكندرية اللوجستي"
-                value={newWhNameAr}
-                onChange={e => setNewWhNameAr(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
-
-            {/* Code */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.warehouseCodeLabel}</label>
-              <input
-                type="text"
-                placeholder="e.g. WH-ALX-01"
-                value={newWhCode}
-                onChange={e => setNewWhCode(e.target.value)}
-                className="w-full text-xs font-mono uppercase rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
-
             {/* Type */}
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.warehouseTypeLabel}</label>
               <select
                 value={newWhType}
-                onChange={e => setNewWhType(e.target.value as 'Internal' | 'FBN 3PL')}
+                onChange={e => setNewWhType(e.target.value as 'Internal' | 'Noon')}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 <option value="Internal">{t.typeInternal}</option>
                 <option value="FBN 3PL">{t.type3PL}</option>
               </select>
-            </div>
-
-            {/* Location EN */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.locationEnLabel}</label>
-              <input
-                type="text"
-                placeholder="e.g. Alexandria Port Free Zone"
-                value={newWhLocation}
-                onChange={e => setNewWhLocation(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
-
-            {/* Location AR */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.locationArLabel}</label>
-              <input
-                type="text"
-                placeholder="مثال: المنطقة الحرة بالعامرية، الإسكندرية"
-                value={newWhLocationAr}
-                onChange={e => setNewWhLocationAr(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
             </div>
 
             {/* Designate as Main Warehouse Checkbox */}
@@ -469,19 +379,6 @@ export const WarehouseTransfers: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {/* SKU */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productSkuLabel} *</label>
-              <input
-                type="text"
-                placeholder="e.g. ELC-SPK-BT5"
-                value={newSku}
-                onChange={e => setNewSku(e.target.value)}
-                className="w-full text-xs font-mono uppercase rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                required
-              />
-            </div>
-
             {/* Name EN */}
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productNameEnLabel} *</label>
@@ -493,35 +390,6 @@ export const WarehouseTransfers: React.FC = () => {
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               />
-            </div>
-
-            {/* Name AR */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productNameArLabel}</label>
-              <input
-                type="text"
-                placeholder="مثال: مكبر صوت بلوتوث لاسلكي 20 واط"
-                value={newNameAr}
-                onChange={e => setNewNameAr(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.categoryLabel}</label>
-              <select
-                value={newCategory}
-                onChange={e => setNewCategory(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              >
-                <option value="Electronics">Electronics (إلكترونيات)</option>
-                <option value="Fashion">Fashion (أزياء)</option>
-                <option value="Perfumes">Perfumes & Beauty (عطور وتجميل)</option>
-                <option value="Home & Living">Home & Kitchen (المنزل والمطبخ)</option>
-                <option value="Accessories">Accessories (إكسسوارات)</option>
-                <option value="General">General (عام)</option>
-              </select>
             </div>
 
             {/* Unit Cost */}
@@ -552,41 +420,6 @@ export const WarehouseTransfers: React.FC = () => {
               />
             </div>
 
-            {/* Initial Main Stock */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.initialMainStockLabel}</label>
-              <input
-                type="number"
-                min="0"
-                value={newStockMain}
-                onChange={e => setNewStockMain(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
-
-            {/* Initial Noon Stock */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.initialNoonStockLabel}</label>
-              <input
-                type="number"
-                min="0"
-                value={newStockNoon}
-                onChange={e => setNewStockNoon(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
-
-            {/* Min Alert Threshold */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.minStockAlertLabel}</label>
-              <input
-                type="number"
-                min="1"
-                value={newMinAlert}
-                onChange={e => setNewMinAlert(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
@@ -634,7 +467,7 @@ export const WarehouseTransfers: React.FC = () => {
               <select
                 value={productId}
                 onChange={e => {
-                  setProductId(e.target.value);
+                  setProductId(Number(e.target.value));
                   setErrorMsg('');
                 }}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
@@ -642,7 +475,7 @@ export const WarehouseTransfers: React.FC = () => {
               >
                 {products.map(p => (
                   <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
-                    {p.sku} - {lang === 'ar' ? p.nameAr : p.name}
+                    {p.name}
                   </option>
                 ))}
               </select>
@@ -653,12 +486,12 @@ export const WarehouseTransfers: React.FC = () => {
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sourceWarehouseLabel}</label>
               <select
                 value={sourceWarehouse}
-                onChange={e => handleSourceChange(e.target.value as WarehouseId)}
+                onChange={e => handleSourceChange(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 {warehouses.map(wh => (
                   <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
-                    {lang === 'ar' ? wh.nameAr : wh.name} ({wh.code})
+                    {wh.name}
                   </option>
                 ))}
               </select>
@@ -682,14 +515,14 @@ export const WarehouseTransfers: React.FC = () => {
               </div>
               <select
                 value={targetWarehouse}
-                onChange={e => setTargetWarehouse(e.target.value as WarehouseId)}
+                onChange={e => setTargetWarehouse(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 {warehouses
                   .filter(wh => wh.id !== sourceWarehouse)
                   .map(wh => (
                     <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
-                      {lang === 'ar' ? wh.nameAr : wh.name} ({wh.code})
+                      {wh.name}
                     </option>
                   ))}
               </select>
@@ -817,7 +650,7 @@ export const WarehouseTransfers: React.FC = () => {
                       <th key={wh.id} className="px-3 py-2.5 text-end">
                         <span className="inline-flex items-center gap-1 justify-end">
                           {isMain && <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400 shrink-0" />}
-                          <span>{lang === 'ar' ? wh.nameAr : wh.name}</span>
+                          <span>{wh.name}</span>
                         </span>
                       </th>
                     );
@@ -829,25 +662,17 @@ export const WarehouseTransfers: React.FC = () => {
               <tbody className="divide-y divide-zinc-800/80">
                 {filteredProducts.map(p => {
                   const totalProductStock = warehouses.reduce((acc, wh) => acc + getProductStock(p, wh.id), 0);
-                  const isLow = warehouses.some(wh => getProductStock(p, wh.id) <= p.minStockAlert);
 
                   return (
                     <tr key={p.id} className="hover:bg-zinc-800/40 transition-colors">
-                      <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{p.sku}</td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-medium text-zinc-200">
-                            {lang === 'ar' ? p.nameAr : p.name}
+                            {p.name}
                           </span>
-                          {isLow && (
-                            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/60 font-medium">
-                              <AlertTriangle className="w-2.5 h-2.5" />
-                              {t.lowStockWarning}
-                            </span>
-                          )}
                         </div>
                         <span className="block text-[11px] text-zinc-500 mt-0.5">
-                          {p.category} • {lang === 'ar' ? 'التكلفة: ' : 'Cost: '}{formatCurrency(p.unitCost)} • {lang === 'ar' ? 'البيع: ' : 'Price: '}{formatCurrency(p.sellingPrice)}
+                          {lang === 'ar' ? 'التكلفة: ' : 'Cost: '}{formatCurrency(p.unitCost)} • {lang === 'ar' ? 'البيع: ' : 'Price: '}{formatCurrency(p.sellingPrice)}
                         </span>
                       </td>
                       {warehouses.map(wh => (
@@ -896,19 +721,17 @@ export const WarehouseTransfers: React.FC = () => {
                 {transfers.map(item => {
                   const srcWh = warehouses.find(w => w.id === item.sourceWarehouse);
                   const tgtWh = warehouses.find(w => w.id === item.targetWarehouse);
-                  const srcLabel = srcWh ? (lang === 'ar' ? srcWh.nameAr : srcWh.name) : item.sourceWarehouse;
-                  const tgtLabel = tgtWh ? (lang === 'ar' ? tgtWh.nameAr : tgtWh.name) : item.targetWarehouse;
+                  const srcLabel = srcWh ? (srcWh.name) : item.sourceWarehouse;
+                  const tgtLabel = tgtWh ? (tgtWh.name) : item.targetWarehouse;
 
                   return (
                     <tr key={item.id} className="hover:bg-zinc-800/40 transition-colors">
-                      <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{item.reference}</td>
                       <td className="px-3 py-2.5 text-zinc-400">{item.transferDate}</td>
-                      <td className="px-3 py-2.5 font-medium text-zinc-200">{item.productName}</td>
+                      <td className="px-3 py-2.5 font-medium text-zinc-200">{products[item.productId].name}</td>
                       <td className="px-3 py-2.5 text-zinc-300">
                         {srcLabel} → {tgtLabel}
                       </td>
                       <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">{item.quantity}</td>
-                      <td className="px-3 py-2.5 font-mono text-zinc-400">{item.fbnAsnNumber || '-'}</td>
                       <td className="px-3 py-2.5">
                         <span className="inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">
                           {item.status}
