@@ -90,6 +90,13 @@ const returnItemList: ReturnItem[] = await loadFromFile<ReturnItem>("return-item
 const noonSettlementList: NoonSettlement[] = await loadFromFile<NoonSettlement>("noon-settlements");
 const supplierPaymentList: SupplierPayment[] = await loadFromFile<SupplierPayment>("supplier-payments");
 
+const getMainWarehouseId = (): number => {
+  const mainWarehouse = warehouseList.filter(w => w.isMain);
+  if (!mainWarehouse.length) {
+    return -1;
+  }
+  return mainWarehouse[0].id;
+};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -105,7 +112,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentTab, setCurrentTab] = useState<NavigationTab>('dashboard');
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>(warehouseList);
-  const [mainWarehouseId, setMainWarehouseId] = useState<number>(1);
+  const [mainWarehouseId, setMainWarehouseId] = useState<number>(getMainWarehouseId());
 
   const [products, setProducts] = useState<Product[]>(productList);
   const [suppliers, setSuppliers] = useState<Supplier[]>(supplierList);
@@ -532,7 +539,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Supplier Payment Logic
-  const addSupplierPayment = (payment: Omit<SupplierPayment, 'id' | 'reference'>) => {
+  const addSupplierPayment = (payment: Omit<SupplierPayment, 'id'>) => {
     const newPayment: SupplierPayment = {
       ...payment,
       id: supplierPayments.length + 1,

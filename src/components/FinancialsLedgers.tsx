@@ -458,7 +458,7 @@ export const FinancialsLedgers: React.FC = () => {
                   >
                     {suppliers.map(s => (
                       <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
-                        {s.name} ({formatCurrency(s.totalPaid - s.totalPurchased)})
+                        {s.name} ({formatCurrency(s.totalPurchased - s.totalPaid)})
                       </option>
                     ))}
                   </select>
@@ -530,13 +530,13 @@ export const FinancialsLedgers: React.FC = () => {
                     <td className="px-3 py-2.5 text-end font-mono text-zinc-300">{formatCurrency(s.totalPurchased)}</td>
                     <td className="px-3 py-2.5 text-end font-mono text-emerald-400">{formatCurrency(s.totalPaid)}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-bold text-rose-400">
-                      {formatCurrency(s.totalPaid - s.totalPurchased)}
+                      {formatCurrency(s.totalPurchased - s.totalPaid)}
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <button
                         onClick={() => {
                           setSelectedSupplierId(s.id);
-                          setSupplierPaymentAmount(s.totalPaid - s.totalPurchased);
+                          setSupplierPaymentAmount(s.totalPurchased - s.totalPaid);
                           setIsSupplierFormOpen(true);
                         }}
                         className="px-2 py-1 text-[11px] font-medium border border-zinc-700 bg-zinc-800 rounded text-zinc-200 hover:bg-zinc-700 hover:text-white"

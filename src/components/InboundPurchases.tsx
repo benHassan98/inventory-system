@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { WarehouseId } from '../types';
 import { Search, Plus, UserPlus, PackagePlus, Building2, Check, X, Star } from 'lucide-react';
 
 export const InboundPurchases: React.FC = () => {
@@ -23,42 +22,32 @@ export const InboundPurchases: React.FC = () => {
 
   // Form toggle & state
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id || '');
-  const [productId, setProductId] = useState<string>(products[0]?.id || '');
-  const [quantity, setQuantity] = useState<number>(50);
-  const [unitCost, setUnitCost] = useState<number>(products[0]?.unitCost || 100);
-  const [targetWarehouse, setTargetWarehouse] = useState<WarehouseId>(mainWarehouseId || 'main');
-  const [purchaseDate, setPurchaseDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [supplierId, setSupplierId] = useState<number>(suppliers.length ? suppliers[0].id : -1);
+  const [productId, setProductId] = useState<number>(products.length ? products[0].id : -1);
+  const [quantity, setQuantity] = useState<number>(0);
+  const [unitCost, setUnitCost] = useState<number>(0);
+  const [targetWarehouse, setTargetWarehouse] = useState<number>(mainWarehouseId);
+  const [purchaseDate,] = useState<string>(new Date().toISOString().split('T')[0]);
   const [paymentStatus, setPaymentStatus] = useState<'Unpaid' | 'Partial' | 'Paid'>('Unpaid');
   const [partialCash, setPartialCash] = useState<number>(0);
-  const [notes, setNotes] = useState<string>('');
 
   // Quick Supplier Add inside Inbound
   const [isQuickSupplierOpen, setIsQuickSupplierOpen] = useState(false);
   const [newSupName, setNewSupName] = useState('');
-  const [newSupNameAr, setNewSupNameAr] = useState('');
   const [newSupContact, setNewSupContact] = useState('');
   const [newSupPhone, setNewSupPhone] = useState('');
   const [newSupBalance, setNewSupBalance] = useState<number>(0);
 
   // Quick Product Add inside Inbound
   const [isQuickProductOpen, setIsQuickProductOpen] = useState(false);
-  const [newProdSku, setNewProdSku] = useState('');
   const [newProdName, setNewProdName] = useState('');
-  const [newProdNameAr, setNewProdNameAr] = useState('');
-  const [newProdCategory, setNewProdCategory] = useState('Electronics');
-  const [newProdUnitCost, setNewProdUnitCost] = useState<number>(100);
-  const [newProdSellingPrice, setNewProdSellingPrice] = useState<number>(180);
-  const [newProdMinAlert, setNewProdMinAlert] = useState<number>(10);
+  const [newProdUnitCost, setNewProdUnitCost] = useState<number>(0);
+  const [newProdSellingPrice, setNewProdSellingPrice] = useState<number>(0);
 
   // Quick Warehouse Add inside Inbound
   const [isQuickWarehouseOpen, setIsQuickWarehouseOpen] = useState(false);
   const [newWhName, setNewWhName] = useState('');
-  const [newWhNameAr, setNewWhNameAr] = useState('');
-  const [newWhCode, setNewWhCode] = useState('');
-  const [newWhType, setNewWhType] = useState<'Internal' | 'FBN 3PL'>('Internal');
-  const [newWhLocation, setNewWhLocation] = useState('');
-  const [newWhLocationAr, setNewWhLocationAr] = useState('');
+  const [newWhType, setNewWhType] = useState<"Noon" | "Internal">('Internal');
   const [newWhIsMain, setNewWhIsMain] = useState(false);
 
   // Table filter states
@@ -69,7 +58,7 @@ export const InboundPurchases: React.FC = () => {
   const selectedProduct = products.find(p => p.id === productId);
   const totalCost = quantity * unitCost;
 
-  const handleProductSelect = (id: string) => {
+  const handleProductSelect = (id: number) => {
     setProductId(id);
     const p = products.find(prod => prod.id === id);
     if (p) {
@@ -95,7 +84,6 @@ export const InboundPurchases: React.FC = () => {
 
     const created = addSupplier({
       name: newSupName,
-      nameAr: newSupNameAr,
       contact: newSupContact,
       phone: newSupPhone,
       initialBalance: newSupBalance,
@@ -103,7 +91,6 @@ export const InboundPurchases: React.FC = () => {
 
     setSupplierId(created.id);
     setNewSupName('');
-    setNewSupNameAr('');
     setNewSupContact('');
     setNewSupPhone('');
     setNewSupBalance(0);
@@ -115,15 +102,10 @@ export const InboundPurchases: React.FC = () => {
     if (!newProdName.trim()) return;
 
     const created = addProduct({
-      sku: newProdSku,
       name: newProdName,
-      nameAr: newProdNameAr,
-      category: newProdCategory,
       unitCost: Number(newProdUnitCost),
       sellingPrice: Number(newProdSellingPrice),
-      stockMain: 0,
-      stockNoon: 0,
-      minStockAlert: Number(newProdMinAlert),
+      stock: {}
     });
 
     setProductId(created.id);
@@ -131,13 +113,9 @@ export const InboundPurchases: React.FC = () => {
     if (paymentStatus === 'Partial') {
       setPartialCash(Math.round((quantity * created.unitCost) * 0.5));
     }
-    setNewProdSku('');
     setNewProdName('');
-    setNewProdNameAr('');
-    setNewProdCategory('Electronics');
     setNewProdUnitCost(100);
     setNewProdSellingPrice(180);
-    setNewProdMinAlert(10);
     setIsQuickProductOpen(false);
   };
 
@@ -147,21 +125,13 @@ export const InboundPurchases: React.FC = () => {
 
     const createdWh = addWarehouse({
       name: newWhName,
-      nameAr: newWhNameAr,
-      code: newWhCode,
       type: newWhType,
-      location: newWhLocation,
-      locationAr: newWhLocationAr,
       isMain: newWhIsMain,
     });
 
     setTargetWarehouse(createdWh.id);
     setNewWhName('');
-    setNewWhNameAr('');
-    setNewWhCode('');
     setNewWhType('Internal');
-    setNewWhLocation('');
-    setNewWhLocationAr('');
     setNewWhIsMain(false);
     setIsQuickWarehouseOpen(false);
   };
@@ -181,32 +151,25 @@ export const InboundPurchases: React.FC = () => {
 
     addInboundShipment({
       supplierId: selectedSupplier.id,
-      supplierName: lang === 'ar' ? selectedSupplier.nameAr : selectedSupplier.name,
       productId: selectedProduct.id,
-      productName: lang === 'ar' ? selectedProduct.nameAr : selectedProduct.name,
-      sku: selectedProduct.sku,
       quantity: Number(quantity),
       unitCost: Number(unitCost),
-      targetWarehouse,
+      warehouseId: targetWarehouse,
       purchaseDate,
       paymentStatus,
       paidAmount: cashAmount,
-      notes: notes.trim() || undefined,
     });
 
     // Reset & close form
     setQuantity(50);
-    setNotes('');
     setIsFormOpen(false);
   };
 
   const filteredShipments = inboundShipments.filter(item => {
     const matchesSearch =
-      item.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.supplierName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.reference.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesWh = warehouseFilter === 'all' || item.targetWarehouse === warehouseFilter;
+      products[item.productId].name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      suppliers[item.supplierId].name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesWh = warehouseFilter === 'all' || warehouses[item.warehouseId].name === warehouseFilter;
     return matchesSearch && matchesWh;
   });
 
@@ -274,18 +237,6 @@ export const InboundPurchases: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">
-                    {t.supplierNameArLabel}
-                  </label>
-                  <input
-                    type="text"
-                    value={newSupNameAr}
-                    onChange={e => setNewSupNameAr(e.target.value)}
-                    placeholder="مثال: شركة النيل للتوريدات"
-                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">
                     {t.phoneLabel}
                   </label>
                   <input
@@ -349,17 +300,6 @@ export const InboundPurchases: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productSkuLabel} *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. ELC-SPK-BT5"
-                    value={newProdSku}
-                    onChange={e => setNewProdSku(e.target.value)}
-                    className="w-full text-xs font-mono uppercase rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                    required
-                  />
-                </div>
-                <div>
                   <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productNameEnLabel} *</label>
                   <input
                     type="text"
@@ -369,30 +309,6 @@ export const InboundPurchases: React.FC = () => {
                     className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                     required
                   />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productNameArLabel}</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: سماعة بلوتوث لاسلكية"
-                    value={newProdNameAr}
-                    onChange={e => setNewProdNameAr(e.target.value)}
-                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.categoryLabel}</label>
-                  <select
-                    value={newProdCategory}
-                    onChange={e => setNewProdCategory(e.target.value)}
-                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  >
-                    <option value="Electronics">Electronics</option>
-                    <option value="Fashion">Fashion</option>
-                    <option value="Perfumes">Perfumes</option>
-                    <option value="Home & Living">Home & Living</option>
-                    <option value="General">General</option>
-                  </select>
                 </div>
                 <div>
                   <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.unitCost} ({t.currency}) *</label>
@@ -470,55 +386,15 @@ export const InboundPurchases: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.warehouseNameArLabel}</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: مستودع الإسكندرية اللوجستي"
-                    value={newWhNameAr}
-                    onChange={e => setNewWhNameAr(e.target.value)}
-                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.warehouseCodeLabel}</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. WH-ALX-01"
-                    value={newWhCode}
-                    onChange={e => setNewWhCode(e.target.value)}
-                    className="w-full text-xs font-mono uppercase rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  />
-                </div>
-                <div>
                   <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.warehouseTypeLabel}</label>
                   <select
                     value={newWhType}
-                    onChange={e => setNewWhType(e.target.value as 'Internal' | 'FBN 3PL')}
+                    onChange={e => setNewWhType(e.target.value as 'Noon' | 'Internal')}
                     className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                   >
                     <option value="Internal">{t.typeInternal}</option>
                     <option value="FBN 3PL">{t.type3PL}</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.locationEnLabel}</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Alexandria Port Free Zone"
-                    value={newWhLocation}
-                    onChange={e => setNewWhLocation(e.target.value)}
-                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.locationArLabel}</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: المنطقة الحرة بالعامرية، الإسكندرية"
-                    value={newWhLocationAr}
-                    onChange={e => setNewWhLocationAr(e.target.value)}
-                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                  />
                 </div>
               </div>
 
@@ -577,13 +453,13 @@ export const InboundPurchases: React.FC = () => {
               </div>
               <select
                 value={supplierId}
-                onChange={e => setSupplierId(e.target.value)}
+                onChange={e => setSupplierId(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               >
                 {suppliers.map(s => (
                   <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
-                    {lang === 'ar' ? s.nameAr : s.name} ({formatCurrency(s.currentBalance)})
+                    {s.name} ({formatCurrency(s.totalPurchased - s.totalPaid)})
                   </option>
                 ))}
               </select>
@@ -608,13 +484,13 @@ export const InboundPurchases: React.FC = () => {
               </div>
               <select
                 value={productId}
-                onChange={e => handleProductSelect(e.target.value)}
+                onChange={e => handleProductSelect(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               >
                 {products.map(p => (
                   <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
-                    {p.sku} - {lang === 'ar' ? p.nameAr : p.name}
+                    {p.name}
                   </option>
                 ))}
               </select>
@@ -639,14 +515,14 @@ export const InboundPurchases: React.FC = () => {
               </div>
               <select
                 value={targetWarehouse}
-                onChange={e => setTargetWarehouse(e.target.value as WarehouseId)}
+                onChange={e => setTargetWarehouse(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 {warehouses.map(wh => {
                   const isMain = wh.id === mainWarehouseId || wh.isMain;
                   return (
                     <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
-                      {isMain ? '★ ' : ''}{lang === 'ar' ? wh.nameAr : wh.name} ({wh.code}){isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Primary Main') : ''}
+                      {isMain ? '★ ' : ''}{wh.name} {isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Primary Main') : ''}
                     </option>
                   );
                 })}
@@ -820,7 +696,7 @@ export const InboundPurchases: React.FC = () => {
             <option value="all" className="bg-zinc-900">{t.allWarehouses}</option>
             {warehouses.map(wh => (
               <option key={wh.id} value={wh.id} className="bg-zinc-900">
-                {lang === 'ar' ? wh.nameAr : wh.name}
+                {wh.name}
               </option>
             ))}
           </select>
@@ -855,20 +731,18 @@ export const InboundPurchases: React.FC = () => {
                   const paid = item.paidAmount !== undefined
                     ? item.paidAmount
                     : item.paymentStatus === 'Paid'
-                    ? item.totalCost
-                    : item.paymentStatus === 'Partial'
-                    ? item.totalCost * 0.5
-                    : 0;
+                      ? item.totalCost
+                      : item.paymentStatus === 'Partial'
+                        ? item.totalCost * 0.5
+                        : 0;
                   const remaining = Math.max(0, item.totalCost - paid);
 
                   return (
                     <tr key={item.id} className="hover:bg-zinc-800/40 transition-colors">
-                      <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{item.reference}</td>
                       <td className="px-3 py-2.5 text-zinc-400">{item.purchaseDate}</td>
-                      <td className="px-3 py-2.5 font-medium text-zinc-200">{item.supplierName}</td>
+                      <td className="px-3 py-2.5 font-medium text-zinc-200">{suppliers[item.supplierId].name}</td>
                       <td className="px-3 py-2.5">
-                        <span className="font-medium text-zinc-200">{item.productName}</span>
-                        <span className="block text-[11px] text-zinc-500">{item.sku}</span>
+                        <span className="font-medium text-zinc-200">{products[item.productId].name}</span>
                       </td>
                       <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">
                         {item.quantity}
@@ -878,15 +752,14 @@ export const InboundPurchases: React.FC = () => {
                       </td>
                       <td className="px-3 py-2.5">
                         {(() => {
-                          const whObj = warehouses.find(w => w.id === item.targetWarehouse);
-                          const is3pl = whObj ? whObj.type === 'FBN 3PL' : item.targetWarehouse === 'noon';
-                          const whTitle = whObj ? (lang === 'ar' ? whObj.nameAr : whObj.name) : item.targetWarehouse;
+                          const whObj = warehouses.find(w => w.id === item.warehouseId);
+                          const isNoon = whObj ? whObj.type === 'Noon' : warehouses[item.warehouseId].type === 'Noon';
+                          const whTitle = whObj ? (whObj.name) : warehouses[item.warehouseId].name;
                           return (
-                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                              is3pl
-                                ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
-                                : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
-                            }`}>
+                            <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${isNoon
+                              ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
+                              : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
+                              }`}>
                               {whTitle}
                             </span>
                           );
