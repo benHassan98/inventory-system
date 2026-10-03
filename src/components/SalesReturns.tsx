@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { WarehouseId } from '../types';
 import { ShoppingBag, RotateCcw, Search, Plus } from 'lucide-react';
 
 export const SalesReturns: React.FC = () => {
@@ -24,22 +23,21 @@ export const SalesReturns: React.FC = () => {
 
   // Sales Form State
   const [isSaleFormOpen, setIsSaleFormOpen] = useState(false);
-  const [productId, setProductId] = useState<string>(products[0]?.id || '');
-  const [sourceWarehouse, setSourceWarehouse] = useState<WarehouseId>(warehouses[0]?.id || 'noon');
+  const [productId, setProductId] = useState<number>(products.length ? products[0].id : -1);
+  const [sourceWarehouse, setSourceWarehouse] = useState<number>(warehouses.length ? warehouses[0].id : -1);
   const [quantity, setQuantity] = useState<number>(1);
-  const [sellingPrice, setSellingPrice] = useState<number>(products[0]?.sellingPrice || 100);
-  const [saleDate, setSaleDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [sellingPrice, setSellingPrice] = useState<number>(products.length ? products[0].sellingPrice : 100);
+  const [saleDate,] = useState<string>(new Date().toISOString().split('T')[0]);
   const [saleError, setSaleError] = useState<string>('');
 
   // Returns Form State
   const [isReturnFormOpen, setIsReturnFormOpen] = useState(false);
-  const [returnOrderNum, setReturnOrderNum] = useState<string>('');
-  const [returnProductId, setReturnProductId] = useState<string>(products[0]?.id || '');
+  const [returnProductId, setReturnProductId] = useState<number>(products.length ? products[0].id : -1);
   const [returnQuantity, setReturnQuantity] = useState<number>(1);
-  const [refundAmount, setRefundAmount] = useState<number>(products[0]?.sellingPrice || 100);
-  const [returnWarehouse, setReturnWarehouse] = useState<WarehouseId>(mainWarehouseId || 'main');
+  const [refundAmount, setRefundAmount] = useState<number>(products.length ? products[0].sellingPrice : 100);
+  const [returnWarehouse, setReturnWarehouse] = useState<number>(mainWarehouseId);
   const [returnCondition, setReturnCondition] = useState<'Sellable' | 'Damaged'>('Sellable');
-  const [returnReason, setReturnReason] = useState<string>('Customer changed mind');
+  const [returnReason,] = useState<string>('Customer changed mind');
 
   // Search
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -49,7 +47,7 @@ export const SalesReturns: React.FC = () => {
     ? getProductStock(selectedProduct, sourceWarehouse)
     : 0;
 
-  const handleProductChange = (id: string) => {
+  const handleProductChange = (id: number) => {
     setProductId(id);
     const prod = products.find(p => p.id === id);
     if (prod) setSellingPrice(prod.sellingPrice);
@@ -65,16 +63,12 @@ export const SalesReturns: React.FC = () => {
       return;
     }
 
-    const channel = sourceWarehouse === 'noon' ? 'Noon FBN' : 'Direct / Store';
     const res = addSale({
       productId: selectedProduct.id,
-      productName: lang === 'ar' ? selectedProduct.nameAr : selectedProduct.name,
-      sku: selectedProduct.sku,
       quantity: Number(quantity),
       sellingPrice: Number(sellingPrice),
       unitCost: selectedProduct.unitCost,
-      sourceWarehouse,
-      channel,
+      warehouseId: sourceWarehouse,
       saleDate,
     });
 
@@ -93,12 +87,10 @@ export const SalesReturns: React.FC = () => {
     if (!retProduct) return;
 
     addReturn({
-      orderNumber: returnOrderNum.trim() || `ORD-RET-${Date.now().toString().slice(-4)}`,
       productId: retProduct.id,
-      productName: lang === 'ar' ? retProduct.nameAr : retProduct.name,
       quantity: Number(returnQuantity),
       refundAmount: Number(refundAmount),
-      targetWarehouse: returnWarehouse,
+      warehouseId: returnWarehouse,
       condition: returnCondition,
       restocked: returnCondition === 'Sellable',
       reason: returnReason,
@@ -106,18 +98,14 @@ export const SalesReturns: React.FC = () => {
     });
 
     setIsReturnFormOpen(false);
-    setReturnOrderNum('');
   };
 
   const filteredSales = sales.filter(s =>
-    s.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.sku.toLowerCase().includes(searchQuery.toLowerCase())
+    products[s.productId].name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredReturns = returns.filter(r =>
-    r.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.productName.toLowerCase().includes(searchQuery.toLowerCase())
+    products[r.productId].name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -157,22 +145,20 @@ export const SalesReturns: React.FC = () => {
       <div className="flex space-x-1 border-b border-zinc-800 pb-2">
         <button
           onClick={() => setActiveTab('sales')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            activeTab === 'sales'
-              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
-          }`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeTab === 'sales'
+            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
+            }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
           <span>{lang === 'ar' ? 'سجل المبيعات' : 'Sales Log'} ({sales.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('returns')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            activeTab === 'returns'
-              ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
-              : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
-          }`}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeTab === 'returns'
+            ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
+            }`}
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>{lang === 'ar' ? 'المرتجعات' : 'Returns'} ({returns.length})</span>
@@ -204,13 +190,13 @@ export const SalesReturns: React.FC = () => {
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.product}</label>
               <select
                 value={productId}
-                onChange={e => handleProductChange(e.target.value)}
+                onChange={e => handleProductChange(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               >
                 {products.map(p => (
                   <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
-                    {p.sku} - {lang === 'ar' ? p.nameAr : p.name}
+                    {p.name}
                   </option>
                 ))}
               </select>
@@ -222,7 +208,7 @@ export const SalesReturns: React.FC = () => {
               <select
                 value={sourceWarehouse}
                 onChange={e => {
-                  setSourceWarehouse(e.target.value as WarehouseId);
+                  setSourceWarehouse(Number(e.target.value));
                   setSaleError('');
                 }}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
@@ -231,7 +217,7 @@ export const SalesReturns: React.FC = () => {
                   const isMain = wh.id === mainWarehouseId || wh.isMain;
                   return (
                     <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
-                      {isMain ? '★ ' : ''}{lang === 'ar' ? wh.nameAr : wh.name} ({wh.code}){isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Main') : ''}
+                      {isMain ? '★ ' : ''}{wh.name} {isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Main') : ''}
                     </option>
                   );
                 })}
@@ -303,32 +289,21 @@ export const SalesReturns: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{lang === 'ar' ? 'رقم طلب البيع' : 'Order Reference #'}</label>
-              <input
-                type="text"
-                placeholder="e.g. NON-EG-1092"
-                value={returnOrderNum}
-                onChange={e => setReturnOrderNum(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                required
-              />
-            </div>
 
             <div>
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.product}</label>
               <select
                 value={returnProductId}
                 onChange={e => {
-                  setReturnProductId(e.target.value);
-                  const p = products.find(prod => prod.id === e.target.value);
+                  setReturnProductId(Number(e.target.value));
+                  const p = products.find(prod => prod.id === Number(e.target.value));
                   if (p) setRefundAmount(p.sellingPrice);
                 }}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 {products.map(p => (
                   <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
-                    {p.sku} - {lang === 'ar' ? p.nameAr : p.name}
+                    {p.name}
                   </option>
                 ))}
               </select>
@@ -375,14 +350,14 @@ export const SalesReturns: React.FC = () => {
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.restockWarehouseLabel}</label>
               <select
                 value={returnWarehouse}
-                onChange={e => setReturnWarehouse(e.target.value as WarehouseId)}
+                onChange={e => setReturnWarehouse(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 {warehouses.map(wh => {
                   const isMain = wh.id === mainWarehouseId || wh.isMain;
                   return (
                     <option key={wh.id} value={wh.id} className="bg-zinc-900 text-zinc-100">
-                      {isMain ? '★ ' : ''}{lang === 'ar' ? wh.nameAr : wh.name} ({wh.code}){isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Main') : ''}
+                      {isMain ? '★ ' : ''}{wh.name} {isMain ? (lang === 'ar' ? ' - الرئيسي' : ' - Main') : ''}
                     </option>
                   );
                 })}
@@ -439,27 +414,15 @@ export const SalesReturns: React.FC = () => {
               <tbody className="divide-y divide-zinc-800/80">
                 {filteredSales.map(sale => (
                   <tr key={sale.id} className="hover:bg-zinc-800/40 transition-colors">
-                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{sale.orderNumber}</td>
                     <td className="px-3 py-2.5 text-zinc-400">{sale.saleDate}</td>
                     <td className="px-3 py-2.5">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                        sale.channel === 'Noon FBN'
-                          ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'
-                          : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
-                      }`}>
-                        {sale.channel}
-                      </span>
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="font-medium text-zinc-200">{sale.productName}</span>
-                      <span className="block text-[11px] text-zinc-500">{sale.sku}</span>
+                      <span className="font-medium text-zinc-200">{products[sale.productId].name}</span>
                     </td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">{sale.quantity}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-bold text-zinc-100">
                       {formatCurrency(sale.totalRevenue)}
-                    </td>
-                    <td className="px-3 py-2.5 text-end font-mono font-medium text-emerald-400">
-                      +{formatCurrency(sale.grossProfit)}
                     </td>
                   </tr>
                 ))}
@@ -485,26 +448,24 @@ export const SalesReturns: React.FC = () => {
               <tbody className="divide-y divide-zinc-800/80">
                 {filteredReturns.map(ret => (
                   <tr key={ret.id} className="hover:bg-zinc-800/40 transition-colors">
-                    <td className="px-3 py-2.5 font-mono font-medium text-zinc-200">{ret.orderNumber}</td>
                     <td className="px-3 py-2.5 text-zinc-400">{ret.returnDate}</td>
-                    <td className="px-3 py-2.5 font-medium text-zinc-200">{ret.productName}</td>
+                    <td className="px-3 py-2.5 font-medium text-zinc-200">{products[ret.productId].name}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">{ret.quantity}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-rose-400">
                       -{formatCurrency(ret.refundAmount)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${
-                        ret.condition === 'Sellable'
-                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
-                          : 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
-                      }`}>
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${ret.condition === 'Sellable'
+                        ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
+                        : 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
+                        }`}>
                         {ret.condition}
                       </span>
                     </td>
                     <td className="px-3 py-2.5 text-zinc-400">
                       {(() => {
-                        const wh = warehouses.find(w => w.id === ret.targetWarehouse);
-                        return wh ? (lang === 'ar' ? wh.nameAr : wh.name) : ret.targetWarehouse;
+                        const wh = warehouses.find(w => w.id === ret.warehouseId);
+                        return wh ? wh.name : ret.warehouseId;
                       })()}
                     </td>
                   </tr>

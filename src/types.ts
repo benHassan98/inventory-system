@@ -52,7 +52,7 @@ export interface Sale {
 
 export interface ReturnItem {
   id: number;
-  saleId: number;
+  saleId?: number;
   productId: number;
   quantity: number;
   refundAmount: number;
