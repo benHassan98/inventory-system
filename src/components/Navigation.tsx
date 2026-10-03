@@ -10,8 +10,6 @@ import {
   ShoppingBag,
   CircleDollarSign,
   Globe,
-  RotateCcw,
-  AlertTriangle,
 } from 'lucide-react';
 
 export const Navigation: React.FC = () => {
@@ -21,8 +19,6 @@ export const Navigation: React.FC = () => {
     lang,
     setLang,
     currency,
-    lowStockProducts,
-    resetToDefaultData,
     t,
   } = useApp();
 
@@ -54,12 +50,6 @@ export const Navigation: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {lowStockProducts.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-950/60 text-amber-300 border border-amber-800/60 rounded-md">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>{lowStockProducts.length} {t.lowStockWarning}</span>
-              </span>
-            )}
 
             {/* Language Switch */}
             <button
@@ -71,19 +61,6 @@ export const Navigation: React.FC = () => {
               <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
             </button>
 
-            {/* Reset Demo Data */}
-            <button
-              onClick={() => {
-                if (window.confirm(lang === 'ar' ? 'هل تريد استعادة البيانات الافتراضية؟' : 'Reset all records to default demo data?')) {
-                  resetToDefaultData();
-                }
-              }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md transition-colors"
-              title={t.resetDemo}
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-zinc-500" />
-              <span className="hidden sm:inline">{t.resetDemo}</span>
-            </button>
           </div>
         </div>
 
@@ -96,11 +73,10 @@ export const Navigation: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setCurrentTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
-                  isActive
-                    ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
-                }`}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${isActive
+                  ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-xs'
+                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
+                  }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-zinc-950' : 'text-zinc-400'}`} />
                 <span>{tab.label}</span>
