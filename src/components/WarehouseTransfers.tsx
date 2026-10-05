@@ -29,7 +29,6 @@ export const WarehouseTransfers: React.FC = () => {
     warehouses.find(w => w.id !== mainWarehouseId)?.id ?? -1
   );
   const [quantity, setQuantity] = useState<number>(0);
-  const [fbnAsnNumber, setFbnAsnNumber] = useState<string>('');
   const [transferDate, setTransferDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
@@ -129,7 +128,6 @@ export const WarehouseTransfers: React.FC = () => {
     if (res.success) {
       setIsFormOpen(false);
       setNotes('');
-      setFbnAsnNumber('');
       setErrorMsg('');
     } else if (res.error) {
       setErrorMsg(res.error);
@@ -566,17 +564,6 @@ export const WarehouseTransfers: React.FC = () => {
               />
             </div>
 
-            {/* FBN ASN Number */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.fbnAsnLabel}</label>
-              <input
-                type="text"
-                placeholder="e.g. ASN-2026-904"
-                value={fbnAsnNumber}
-                onChange={e => setFbnAsnNumber(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-              />
-            </div>
 
             {/* Transfer Date */}
             <div>
@@ -642,7 +629,6 @@ export const WarehouseTransfers: React.FC = () => {
             <table className="w-full text-xs text-start">
               <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 font-medium uppercase tracking-wider">
                 <tr>
-                  <th className="px-3 py-2.5 text-start">SKU</th>
                   <th className="px-3 py-2.5 text-start">{t.product}</th>
                   {warehouses.map(wh => {
                     const isMain = wh.id === mainWarehouseId || wh.isMain;
@@ -708,12 +694,9 @@ export const WarehouseTransfers: React.FC = () => {
             <table className="w-full text-xs text-start">
               <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 font-medium uppercase tracking-wider">
                 <tr>
-                  <th className="px-3 py-2.5 text-start">{t.reference}</th>
                   <th className="px-3 py-2.5 text-start">{t.date}</th>
                   <th className="px-3 py-2.5 text-start">{t.product}</th>
-                  <th className="px-3 py-2.5 text-start">{lang === 'ar' ? 'المسار' : 'Route'}</th>
                   <th className="px-3 py-2.5 text-end">{t.quantity}</th>
-                  <th className="px-3 py-2.5 text-start">ASN</th>
                   <th className="px-3 py-2.5 text-start">{t.status}</th>
                 </tr>
               </thead>

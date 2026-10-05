@@ -402,13 +402,10 @@ export const SalesReturns: React.FC = () => {
             <table className="w-full text-xs text-start">
               <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 font-medium uppercase tracking-wider">
                 <tr>
-                  <th className="px-3 py-2.5 text-start">{lang === 'ar' ? 'رقم الطلب' : 'Order #'}</th>
                   <th className="px-3 py-2.5 text-start">{t.date}</th>
-                  <th className="px-3 py-2.5 text-start">{lang === 'ar' ? 'قناة البيع' : 'Channel'}</th>
                   <th className="px-3 py-2.5 text-start">{t.product}</th>
                   <th className="px-3 py-2.5 text-end">{t.quantity}</th>
                   <th className="px-3 py-2.5 text-end">{t.totalAmount}</th>
-                  <th className="px-3 py-2.5 text-end">{t.grossProfit}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800/80">
@@ -436,7 +433,6 @@ export const SalesReturns: React.FC = () => {
             <table className="w-full text-xs text-start">
               <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 font-medium uppercase tracking-wider">
                 <tr>
-                  <th className="px-3 py-2.5 text-start">{lang === 'ar' ? 'رقم الطلب' : 'Order #'}</th>
                   <th className="px-3 py-2.5 text-start">{t.date}</th>
                   <th className="px-3 py-2.5 text-start">{t.product}</th>
                   <th className="px-3 py-2.5 text-end">{t.quantity}</th>

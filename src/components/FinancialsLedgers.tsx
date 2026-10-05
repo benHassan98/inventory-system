@@ -307,10 +307,7 @@ export const FinancialsLedgers: React.FC = () => {
             <table className="w-full text-xs">
               <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 uppercase">
                 <tr>
-                  <th className="px-3 py-2 text-start">{t.reference}</th>
                   <th className="px-3 py-2 text-start">{t.date}</th>
-                  <th className="px-3 py-2 text-start">{lang === 'ar' ? 'طريقة السداد' : 'Method'}</th>
-                  <th className="px-3 py-2 text-start">{t.bankRefLabel}</th>
                   <th className="px-3 py-2 text-end">{t.totalAmount}</th>
                 </tr>
               </thead>
@@ -560,10 +557,8 @@ export const FinancialsLedgers: React.FC = () => {
             <table className="w-full text-xs">
               <thead className="bg-zinc-950/80 border-b border-zinc-800 text-zinc-400 uppercase">
                 <tr>
-                  <th className="px-3 py-2 text-start">{t.reference}</th>
                   <th className="px-3 py-2 text-start">{t.date}</th>
                   <th className="px-3 py-2 text-start">{t.supplier}</th>
-                  <th className="px-3 py-2 text-start">{lang === 'ar' ? 'طريقة السداد' : 'Method'}</th>
                   <th className="px-3 py-2 text-end">{t.totalAmount}</th>
                 </tr>
               </thead>
