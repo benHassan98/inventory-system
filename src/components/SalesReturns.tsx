@@ -415,7 +415,7 @@ export const SalesReturns: React.FC = () => {
                     <td className="px-3 py-2.5">
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="font-medium text-zinc-200">{products[sale.productId].name}</span>
+                      <span className="font-medium text-zinc-200">{products[sale.productId - 1].name}</span>
                     </td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">{sale.quantity}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-bold text-zinc-100">
@@ -445,7 +445,7 @@ export const SalesReturns: React.FC = () => {
                 {filteredReturns.map(ret => (
                   <tr key={ret.id} className="hover:bg-zinc-800/40 transition-colors">
                     <td className="px-3 py-2.5 text-zinc-400">{ret.returnDate}</td>
-                    <td className="px-3 py-2.5 font-medium text-zinc-200">{products[ret.productId].name}</td>
+                    <td className="px-3 py-2.5 font-medium text-zinc-200">{products[ret.productId - 1].name}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">{ret.quantity}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-rose-400">
                       -{formatCurrency(ret.refundAmount)}

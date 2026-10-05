@@ -402,10 +402,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         amount: paidAmount,
         date: data.purchaseDate,
       };
-      setSupplierPayments(prev => [advancePayment, ...prev]);
+      setSupplierPayments(prev => [...prev, advancePayment]);
     }
 
-    setInboundShipments(prev => [newShipment, ...prev]);
+    setInboundShipments(prev => [...prev, newShipment]);
     addToast('success', t.confirmed, t.inboundSuccess);
   };
 
@@ -447,7 +447,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: transfers.length + 1,
     };
 
-    setTransfers(prev => [newTransfer, ...prev]);
+    setTransfers(prev => [...prev, newTransfer]);
     addToast('success', t.completed, t.transferSuccess);
     return { success: true };
   };
@@ -497,7 +497,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: 'Completed',
     };
 
-    setSales(prev => [newSale, ...prev]);
+    setSales(prev => [...prev, newSale]);
     addToast('success', t.completed, t.saleSuccess);
     return { success: true };
   };
@@ -529,7 +529,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
-    setReturns(prev => [newReturn, ...prev]);
+    setReturns(prev => [...prev, newReturn]);
     addToast('info', t.returned, t.returnSuccess);
   };
 
@@ -539,7 +539,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...payout,
       id: noonSettlements.length + 1,
     };
-    setNoonSettlements(prev => [newSettlement, ...prev]);
+    setNoonSettlements(prev => [...prev, newSettlement]);
     addToast('success', t.confirmed, t.payoutSuccess);
   };
 
@@ -562,7 +562,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
-    setSupplierPayments(prev => [newPayment, ...prev]);
+    setSupplierPayments(prev => [...prev, newPayment]);
     addToast('success', t.confirmed, t.paymentSuccess);
   };
 
@@ -584,7 +584,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       totalPaid: 0,
     };
 
-    setSuppliers(prev => [newSupplier, ...prev]);
+    setSuppliers(prev => [...prev, newSupplier]);
     addToast('success', t.confirmed, t.supplierAddedSuccess || 'Supplier registered successfully!');
     return newSupplier;
   };
@@ -603,7 +603,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       stock: {}
     };
 
-    setProducts(prev => [newProduct, ...prev]);
+    setProducts(prev => [...prev, newProduct]);
     addToast('success', t.confirmed, t.productAddedSuccess || 'Product added successfully to inventory!');
     return newProduct;
   };

@@ -739,9 +739,9 @@ export const InboundPurchases: React.FC = () => {
                   return (
                     <tr key={item.id} className="hover:bg-zinc-800/40 transition-colors">
                       <td className="px-3 py-2.5 text-zinc-400">{item.purchaseDate}</td>
-                      <td className="px-3 py-2.5 font-medium text-zinc-200">{suppliers[item.supplierId].name}</td>
+                      <td className="px-3 py-2.5 font-medium text-zinc-200">{suppliers[item.supplierId - 1].name}</td>
                       <td className="px-3 py-2.5">
-                        <span className="font-medium text-zinc-200">{products[item.productId].name}</span>
+                        <span className="font-medium text-zinc-200">{products[item.productId - 1].name}</span>
                       </td>
                       <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">
                         {item.quantity}
@@ -752,8 +752,8 @@ export const InboundPurchases: React.FC = () => {
                       <td className="px-3 py-2.5">
                         {(() => {
                           const whObj = warehouses.find(w => w.id === item.warehouseId);
-                          const isNoon = whObj ? whObj.type === 'Noon' : warehouses[item.warehouseId].type === 'Noon';
-                          const whTitle = whObj ? (whObj.name) : warehouses[item.warehouseId].name;
+                          const isNoon = whObj ? whObj.type === 'Noon' : warehouses[item.warehouseId - 1].type === 'Noon';
+                          const whTitle = whObj ? (whObj.name) : warehouses[item.warehouseId - 1].name;
                           return (
                             <span className={`inline-flex px-1.5 py-0.5 rounded text-[11px] font-medium ${isNoon
                               ? 'bg-amber-950/60 text-amber-300 border border-amber-800/60'

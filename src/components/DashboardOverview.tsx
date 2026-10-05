@@ -249,9 +249,9 @@ export const DashboardOverview: React.FC = () => {
             {transfers.slice(0, 5).map(item => (
               <div key={item.id} className="py-2.5 flex items-center justify-between text-xs">
                 <div>
-                  <span className="font-medium text-zinc-200">{products[item.productId].name}</span>
+                  <span className="font-medium text-zinc-200">{products[item.productId - 1].name}</span>
                   <div className="text-[11px] text-zinc-500">
-                    {warehouses[item.sourceWarehouse].name} → {warehouses[item.targetWarehouse].name}
+                    {warehouses[item.sourceWarehouse - 1].name} → {warehouses[item.targetWarehouse - 1].name}
                   </div>
                 </div>
                 <div className="text-end">

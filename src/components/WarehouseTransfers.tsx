@@ -710,7 +710,7 @@ export const WarehouseTransfers: React.FC = () => {
                   return (
                     <tr key={item.id} className="hover:bg-zinc-800/40 transition-colors">
                       <td className="px-3 py-2.5 text-zinc-400">{item.transferDate}</td>
-                      <td className="px-3 py-2.5 font-medium text-zinc-200">{products[item.productId].name}</td>
+                      <td className="px-3 py-2.5 font-medium text-zinc-200">{products[item.productId - 1].name}</td>
                       <td className="px-3 py-2.5 text-zinc-300">
                         {srcLabel} → {tgtLabel}
                       </td>

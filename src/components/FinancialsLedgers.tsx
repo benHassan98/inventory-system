@@ -566,7 +566,7 @@ export const FinancialsLedgers: React.FC = () => {
                 {supplierPayments.map(p => (
                   <tr key={p.id} className="hover:bg-zinc-800/40">
                     <td className="px-3 py-2.5 text-zinc-400">{p.date}</td>
-                    <td className="px-3 py-2.5 font-medium text-zinc-200">{suppliers[p.supplierId].name}</td>
+                    <td className="px-3 py-2.5 font-medium text-zinc-200">{suppliers[p.supplierId - 1].name}</td>
                     <td className="px-3 py-2.5 text-end font-mono font-medium text-zinc-100">
                       {formatCurrency(p.amount)}
                     </td>
