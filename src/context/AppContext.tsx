@@ -17,7 +17,7 @@ import {
   ToastMessage,
 } from '../types';
 import { TRANSLATIONS } from '../utils/translations';
-import { loadFromFile, saveToFile } from '../utils/data-utils';
+import { dbWrite, dbRead, getData } from "../config/db.ts";
 
 interface AppContextType {
   // Navigation & Preferences
@@ -112,33 +112,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Hydrate from localStorage once on client
   useEffect(() => {
     const asyncWrapper = async () => {
-      const warehouseList: Warehouse[] = await loadFromFile<Warehouse>("warehouses");
-      const productList: Product[] = await loadFromFile<Product>("products");
-      const supplierList: Supplier[] = await loadFromFile<Supplier>("suppliers");
-      const inboundShipmentList: InboundShipment[] = await loadFromFile<InboundShipment>("inbound-shipments");
-      const stockTransferList: StockTransfer[] = await loadFromFile<StockTransfer>("stock-transfers");
-      const saleList: Sale[] = await loadFromFile<Sale>("sales");
-      const returnItemList: ReturnItem[] = await loadFromFile<ReturnItem>("return-items");
-      const noonSettlementList: NoonSettlement[] = await loadFromFile<NoonSettlement>("noon-settlements");
-      const supplierPaymentList: SupplierPayment[] = await loadFromFile<SupplierPayment>("supplier-payments");
+      await dbRead();
+      const data = await getData();
       const getMainWarehouseId = (): number => {
-        const mainWarehouse = warehouseList.filter(w => w.isMain);
+        const mainWarehouse = data.warehouses.filter(w => w.isMain);
         if (!mainWarehouse.length) {
           return -1;
         }
         return mainWarehouse[0].id;
       };
 
-      setWarehouses(warehouseList);
+      setWarehouses(data.warehouses);
       setMainWarehouseId(getMainWarehouseId());
-      setProducts(productList);
-      setSuppliers(supplierList);
-      setInboundShipments(inboundShipmentList);
-      setTransfers(stockTransferList);
-      setSales(saleList);
-      setReturns(returnItemList);
-      setNoonSettlements(noonSettlementList);
-      setSupplierPayments(supplierPaymentList);
+      setProducts(data.products);
+      setSuppliers(data.suppliers);
+      setInboundShipments(data.inboundShipments);
+      setTransfers(data.stockTransfers);
+      setSales(data.sales);
+      setReturns(data.returnItems);
+      setNoonSettlements(data.noonSettlements);
+      setSupplierPayments(data.supplierPayments);
 
       setIsHydrated(true);
     };
@@ -167,7 +160,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(warehouses, "warehouses");
+        await dbWrite();
       }
     };
     asyncWrapper();
@@ -177,7 +170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(products, "products");
+        await dbWrite();
       }
     };
     asyncWrapper();
@@ -187,7 +180,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(suppliers, "suppliers");
+        await dbWrite();
       }
     };
     asyncWrapper();
@@ -196,7 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
-      await saveToFile(inboundShipments, "inbound-shipments");
+      await dbWrite();
     };
     asyncWrapper();
   }, [inboundShipments, hydrate]);
@@ -205,7 +198,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(transfers, "stock-transfers");
+        await dbWrite();
       }
     };
     asyncWrapper();
@@ -215,7 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(sales, "sales");
+        await dbWrite();
       }
     };
     asyncWrapper();
@@ -225,7 +218,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(returns, "return-items");
+        await dbWrite();
       }
     };
     asyncWrapper();
@@ -235,7 +228,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(noonSettlements, "noon-settlements");
+        await dbWrite();
       }
     };
     asyncWrapper();
@@ -245,7 +238,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await saveToFile(supplierPayments, "supplier-payments");
+        await dbWrite();
       }
       asyncWrapper();
     };

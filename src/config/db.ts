@@ -1,7 +1,8 @@
+"use server"
 import { JSONFileSyncPreset } from "lowdb/node";
 import { InboundShipment, NoonSettlement, Product, ReturnItem, Sale, StockTransfer, Supplier, SupplierPayment, Warehouse } from "../types";
 
-type defaultDataType = {
+export type DefaultDataType = {
   warehouses: Warehouse[],
   products: Product[],
   inboundShipments: InboundShipment[],
@@ -12,7 +13,7 @@ type defaultDataType = {
   suppliers: Supplier[],
   supplierPayments: SupplierPayment[]
 };
-const defaultData: defaultDataType = {
+const defaultData: DefaultDataType = {
   warehouses: [],
   products: [],
   inboundShipments: [],
@@ -24,4 +25,8 @@ const defaultData: defaultDataType = {
   supplierPayments: []
 };
 
-export const dp = JSONFileSyncPreset("db.json", defaultData);
+const db = JSONFileSyncPreset("db.json", defaultData);
+
+export const dbWrite = async () => db.write();
+export const dbRead = async () => db.read();
+export const getData = async () => db.data;

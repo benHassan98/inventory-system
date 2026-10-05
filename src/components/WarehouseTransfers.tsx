@@ -26,7 +26,7 @@ export const WarehouseTransfers: React.FC = () => {
   const [productId, setProductId] = useState<number>(products.length ? products[0].id : -1);
   const [sourceWarehouse, setSourceWarehouse] = useState<number>(mainWarehouseId);
   const [targetWarehouse, setTargetWarehouse] = useState<number>(
-    warehouses.find(w => w.id !== (mainWarehouseId || warehouses[0].id)).id
+    warehouses.find(w => w.id !== mainWarehouseId)?.id ?? -1
   );
   const [quantity, setQuantity] = useState<number>(0);
   const [fbnAsnNumber, setFbnAsnNumber] = useState<string>('');
@@ -326,7 +326,7 @@ export const WarehouseTransfers: React.FC = () => {
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
               >
                 <option value="Internal">{t.typeInternal}</option>
-                <option value="FBN 3PL">{t.type3PL}</option>
+                <option value="Noon">{t.typeNoon}</option>
               </select>
             </div>
 

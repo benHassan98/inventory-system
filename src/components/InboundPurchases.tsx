@@ -393,7 +393,7 @@ export const InboundPurchases: React.FC = () => {
                     className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                   >
                     <option value="Internal">{t.typeInternal}</option>
-                    <option value="FBN 3PL">{t.type3PL}</option>
+                    <option value="Noon">{t.typeNoon}</option>
                   </select>
                 </div>
               </div>
