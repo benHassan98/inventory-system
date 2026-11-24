@@ -35,7 +35,7 @@ interface AppContextType {
   mainWarehouseId: number;
   setMainWarehouse: (warehouseId: number) => void;
   products: Product[];
-  // lowStockProducts: Product[];
+  lowStockProductsCount: number;
   mainWarehouseStockCount: number;
   noonWarehouseStockCount: number;
   getProductStock: (product: Product, warehouseId: number) => number;
@@ -160,7 +160,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("warehouses", warehouses);
       }
     };
     asyncWrapper();
@@ -170,7 +170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("products", products);
       }
     };
     asyncWrapper();
@@ -180,7 +180,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("suppliers", suppliers);
       }
     };
     asyncWrapper();
@@ -189,7 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
-      await dbWrite();
+      await dbWrite("inboundShipments", inboundShipments);
     };
     asyncWrapper();
   }, [inboundShipments, hydrate]);
@@ -198,7 +198,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("stockTransfers", transfers);
       }
     };
     asyncWrapper();
@@ -208,7 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("sales", sales);
       }
     };
     asyncWrapper();
@@ -218,7 +218,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("returnItems", returns);
       }
     };
     asyncWrapper();
@@ -228,7 +228,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("noonSettlements", noonSettlements);
       }
     };
     asyncWrapper();
@@ -238,7 +238,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window === 'undefined') return;
     const asyncWrapper = async () => {
       if (hydrate) {
-        await dbWrite();
+        await dbWrite("supplierPayments", supplierPayments);
       }
       asyncWrapper();
     };
@@ -271,12 +271,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Helper: Retrieve Stock for a product in any warehouse
-  const getProductStock = (product: Product, warehouseId: number): number => {
-    if (product.stock[warehouseId] !== undefined) {
-      return product.stock[warehouseId];
-    }
-    return 0;
-  };
+  const getProductStock = (product: Product, warehouseId: number): number => product.stock[warehouseId] ?? 0;
 
   // Helper: Retrieve Total Stock across all products in a warehouse
   const getWarehouseStockCount = (warehouseId: number): number => {
@@ -373,7 +368,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return {
             ...prod,
             unitCost: data.unitCost, // Update latest unit cost
-            warehouseStocks: updatedStocks,
+            stock: updatedStocks,
           };
         }
         return prod;
@@ -435,7 +430,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           };
           return {
             ...p,
-            warehouseStocks: updatedStocks,
+            stock: updatedStocks,
           };
         }
         return p;
@@ -481,7 +476,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           };
           return {
             ...p,
-            warehouseStocks: updatedStocks,
+            stock: updatedStocks,
           };
         }
         return p;
@@ -521,7 +516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             };
             return {
               ...p,
-              warehouseStocks: updatedStocks,
+              stock: updatedStocks,
             };
           }
           return p;
@@ -592,14 +587,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Add Product Logic
   const addProduct = (data: {
     name: string;
-    unitCost: number;
-    sellingPrice: number;
+    categoryId: number;
+    sku: string;
+    minStockAlert: number;
   }): Product => {
     const newProduct: Product = {
       id: products.length + 1,
       name: data.name.trim(),
-      unitCost: Math.max(0, Number(data.unitCost) || 0),
-      sellingPrice: Math.max(0, Number(data.sellingPrice) || 0),
+      categoryId: data.categoryId,
+      minStockAlert: data.minStockAlert,
+      sku: data.sku,
       stock: {}
     };
 
@@ -609,30 +606,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // get stock count in main warehouses
-  const getMainWarehouseStock = (stock: Record<number, number>): number => {
-    let ans = 0;
-    Object.entries(stock).forEach(([k, v]) => {
-      if (warehouses[Number(k)].isMain) {
-        ans += v;
+  const getMainWarehouseStock = (productId: number, sku: string): number => {
+    let cnt = 0;
+    const product = products.find(prd => prd.id === productId && prd.sku === sku);
+    if (!product) return 0;
+    Object.entries(product.stock).forEach(([k, v]) => {
+      if (warehouses[k].isMain) {
+        cnt = v;
       }
     });
-    return ans;
+    return cnt;
   };
 
   // get stock count in noon warehouses
-  const getNoonWarehouseStock = (stock: Record<number, number>): number => {
-    let ans = 0;
-    Object.entries(stock).forEach(([k, v]) => {
-      if (warehouses[Number(k)].type === "Noon") {
-        ans += v;
+  const getNoonWarehouseStock = (productId: number, sku: string): number => {
+    let cnt = 0;
+    const product = products.find(prd => prd.id === productId && prd.sku === sku);
+    if (!product) return 0;
+    Object.entries(product.stock).forEach(([k, v]) => {
+      if (warehouses[k].type === "Noon") {
+        cnt = v;
       }
     });
-    return ans;
+    return cnt;
   };
 
   // Calculated Aggregate Values
-  const mainWarehouseStockCount = products.reduce((acc, p) => acc + getMainWarehouseStock(p.stock), 0);
-  const noonWarehouseStockCount = products.reduce((acc, p) => acc + getNoonWarehouseStock(p.stock), 0);
+  const mainWarehouseStockCount = products.reduce((acc, p) => acc + getMainWarehouseStock(p.id, p.sku), 0);
+  const noonWarehouseStockCount = products.reduce((acc, p) => acc + getNoonWarehouseStock(p.id, p.sku), 0);
+  const lowStockProductsCount = products.reduce(
+    (acc, p) => {
+      let isLow = 0;
+      Object.entries(p.stock).forEach(([k, v]) => {
+        if ((warehouses[k].isMain || warehouses[k].type === "Noon") && v < p.minStockAlert) {
+          isLow = 1;
+        }
+      });
+
+      return acc + isLow;
+    },
+    0
+  );
 
   const totalSalesRevenue = sales.reduce((acc, s) => acc + s.totalRevenue, 0);
   const totalRefunds = returns.reduce((acc, r) => acc + r.refundAmount, 0);
@@ -668,6 +682,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setMainWarehouse,
         addWarehouse,
         products,
+        lowStockProductsCount,
         addProduct,
         getProductStock,
         getWarehouseStockCount,

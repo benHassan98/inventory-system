@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ArrowRightLeft, Search, Building2, Store, PackagePlus, Plus, Check, Star } from 'lucide-react';
+import { ArrowRightLeft, Search, Building2, Store, PackagePlus, Plus, Check, Star, AlertTriangle } from 'lucide-react';
+import { categoryList } from '../types';
 
 export const WarehouseTransfers: React.FC = () => {
   const {
@@ -16,7 +17,6 @@ export const WarehouseTransfers: React.FC = () => {
     addProduct,
     getProductStock,
     getWarehouseStockCount,
-    formatCurrency,
     t,
     lang,
   } = useApp();
@@ -35,9 +35,10 @@ export const WarehouseTransfers: React.FC = () => {
 
   // Add Product Form state
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newUnitCost, setNewUnitCost] = useState<number>(100);
-  const [newSellingPrice, setNewSellingPrice] = useState<number>(180);
+  const [newProdSku, setNewProdSku] = useState('');
+  const [newProdName, setNewProdName] = useState('');
+  const [newProdCategory, setNewProdCategory] = useState('');
+  const [newProdMinAlert, setNewProdMinAlert] = useState<number>(0);
 
   // Add Warehouse Form state
   const [isAddWarehouseOpen, setIsAddWarehouseOpen] = useState(false);
@@ -91,19 +92,21 @@ export const WarehouseTransfers: React.FC = () => {
 
   const handleAddProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newProdName.trim()) return;
 
     const created = addProduct({
-      name: newName,
-      unitCost: Number(newUnitCost),
-      sellingPrice: Number(newSellingPrice),
+      name: newProdName,
+      sku: newProdSku,
+      categoryId: categoryList.findIndex(prd => prd === newProdCategory) + 1,
+      minStockAlert: Number(newProdMinAlert),
       stock: {}
     });
 
     setProductId(created.id);
-    setNewName('');
-    setNewUnitCost(100);
-    setNewSellingPrice(180);
+    setNewProdSku('');
+    setNewProdName('');
+    setNewProdCategory('');
+    setNewProdMinAlert(0);
     setIsAddProductOpen(false);
   };
 
@@ -376,45 +379,49 @@ export const WarehouseTransfers: React.FC = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {/* Name EN */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.productNameEnLabel} *</label>
+              <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productSkuLabel} *</label>
               <input
                 type="text"
-                placeholder="e.g. Wireless Bluetooth Speaker 20W"
-                value={newName}
-                onChange={e => setNewName(e.target.value)}
-                className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                placeholder="e.g. ELC-SPK-BT5"
+                value={newProdSku}
+                onChange={e => setNewProdSku(e.target.value)}
+                className="w-full text-xs font-mono uppercase rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               />
             </div>
-
-            {/* Unit Cost */}
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.unitCost} ({t.currency}) *</label>
+              <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productNameEnLabel} *</label>
               <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={newUnitCost}
-                onChange={e => setNewUnitCost(Math.max(0, parseFloat(e.target.value) || 0))}
-                className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                type="text"
+                placeholder="e.g. Bluetooth Speaker 20W"
+                value={newProdName}
+                onChange={e => setNewProdName(e.target.value)}
+                className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               />
             </div>
-
-            {/* Selling Price */}
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.sellingPrice} ({t.currency}) *</label>
+              <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.categoryLabel}</label>
+              <select
+                value={newProdCategory}
+                onChange={e => setNewProdCategory(e.target.value)}
+                className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+              >
+                {categoryList.map((name) => {
+                  return <option value={name}>{name}</option>
+                })}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">{t.minStockAlertLabel}</label>
               <input
                 type="number"
-                min="0"
-                step="0.01"
-                value={newSellingPrice}
-                onChange={e => setNewSellingPrice(Math.max(0, parseFloat(e.target.value) || 0))}
+                min="1"
+                value={newProdMinAlert}
+                onChange={e => setNewProdMinAlert(Math.max(1, parseInt(e.target.value) || 1))}
                 className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                required
               />
             </div>
 
@@ -648,6 +655,7 @@ export const WarehouseTransfers: React.FC = () => {
               <tbody className="divide-y divide-zinc-800/80">
                 {filteredProducts.map(p => {
                   const totalProductStock = warehouses.reduce((acc, wh) => acc + getProductStock(p, wh.id), 0);
+                  const isLow = warehouses.some(wh => getProductStock(p, wh.id) <= p.minStockAlert);
 
                   return (
                     <tr key={p.id} className="hover:bg-zinc-800/40 transition-colors">
@@ -656,10 +664,13 @@ export const WarehouseTransfers: React.FC = () => {
                           <span className="font-medium text-zinc-200">
                             {p.name}
                           </span>
+                          {isLow && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/60 font-medium">
+                              <AlertTriangle className="w-2.5 h-2.5" />
+                              {t.lowStockWarning}
+                            </span>
+                          )}
                         </div>
-                        <span className="block text-[11px] text-zinc-500 mt-0.5">
-                          {lang === 'ar' ? 'التكلفة: ' : 'Cost: '}{formatCurrency(p.unitCost)} • {lang === 'ar' ? 'البيع: ' : 'Price: '}{formatCurrency(p.sellingPrice)}
-                        </span>
                       </td>
                       {warehouses.map(wh => (
                         <td key={wh.id} className="px-3 py-2.5 text-end font-mono font-medium text-zinc-200">

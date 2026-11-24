@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Search, Plus, UserPlus, PackagePlus, Building2, Check, X, Star } from 'lucide-react';
+import { categoryList } from "../types";
 
 export const InboundPurchases: React.FC = () => {
   const {
@@ -40,9 +41,10 @@ export const InboundPurchases: React.FC = () => {
 
   // Quick Product Add inside Inbound
   const [isQuickProductOpen, setIsQuickProductOpen] = useState(false);
+  const [newProdSku, setNewProdSku] = useState('');
   const [newProdName, setNewProdName] = useState('');
-  const [newProdUnitCost, setNewProdUnitCost] = useState<number>(0);
-  const [newProdSellingPrice, setNewProdSellingPrice] = useState<number>(0);
+  const [newProdCategory, setNewProdCategory] = useState('');
+  const [newProdMinAlert, setNewProdMinAlert] = useState<number>(0);
 
   // Quick Warehouse Add inside Inbound
   const [isQuickWarehouseOpen, setIsQuickWarehouseOpen] = useState(false);
@@ -58,16 +60,6 @@ export const InboundPurchases: React.FC = () => {
   const selectedProduct = products.find(p => p.id === productId);
   const totalCost = quantity * unitCost;
 
-  const handleProductSelect = (id: number) => {
-    setProductId(id);
-    const p = products.find(prod => prod.id === id);
-    if (p) {
-      setUnitCost(p.unitCost);
-      if (paymentStatus === 'Partial') {
-        setPartialCash(Math.round((quantity * p.unitCost) * 0.5));
-      }
-    }
-  };
 
   const handlePaymentStatusChange = (status: 'Unpaid' | 'Partial' | 'Paid') => {
     setPaymentStatus(status);
@@ -102,21 +94,20 @@ export const InboundPurchases: React.FC = () => {
     if (!newProdName.trim()) return;
 
     const created = addProduct({
+      sku: newProdSku,
       name: newProdName,
-      unitCost: Number(newProdUnitCost),
-      sellingPrice: Number(newProdSellingPrice),
+      categoryId: categoryList.findIndex(prd => prd === newProdCategory) + 1,
+      minStockAlert: Number(newProdMinAlert),
       stock: {}
     });
 
     setProductId(created.id);
-    setUnitCost(created.unitCost);
-    if (paymentStatus === 'Partial') {
-      setPartialCash(Math.round((quantity * created.unitCost) * 0.5));
-    }
+    setNewProdSku('');
     setNewProdName('');
-    setNewProdUnitCost(100);
-    setNewProdSellingPrice(180);
+    setNewProdCategory('');
+    setNewProdMinAlert(0);
     setIsQuickProductOpen(false);
+
   };
 
   const handleQuickWarehouseSubmit = (e: React.FormEvent) => {
@@ -167,8 +158,8 @@ export const InboundPurchases: React.FC = () => {
 
   const filteredShipments = inboundShipments.filter(item => {
     const matchesSearch =
-      products[item.productId].name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      suppliers[item.supplierId].name.toLowerCase().includes(searchQuery.toLowerCase());
+      products[item.productId - 1].name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      suppliers[item.supplierId - 1].name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesWh = warehouseFilter === 'all' || warehouses[item.warehouseId].name === warehouseFilter;
     return matchesSearch && matchesWh;
   });
@@ -300,6 +291,17 @@ export const InboundPurchases: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 <div>
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productSkuLabel} *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ELC-SPK-BT5"
+                    value={newProdSku}
+                    onChange={e => setNewProdSku(e.target.value)}
+                    className="w-full text-xs font-mono uppercase rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                    required
+                  />
+                </div>
+                <div>
                   <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.productNameEnLabel} *</label>
                   <input
                     type="text"
@@ -311,27 +313,25 @@ export const InboundPurchases: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.unitCost} ({t.currency}) *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={newProdUnitCost}
-                    onChange={e => setNewProdUnitCost(Math.max(0, parseFloat(e.target.value) || 0))}
-                    className="w-full text-xs font-mono rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                    required
-                  />
+                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.categoryLabel}</label>
+                  <select
+                    value={newProdCategory}
+                    onChange={e => setNewProdCategory(e.target.value)}
+                    className="w-full text-xs rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
+                  >
+                    {categoryList.map((name, i) => {
+                      return <option value={name} key={i}>{name}</option>
+                    })}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-zinc-300 mb-0.5">{t.sellingPrice} ({t.currency}) *</label>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">{t.minStockAlertLabel}</label>
                   <input
                     type="number"
-                    min="0"
-                    step="0.01"
-                    value={newProdSellingPrice}
-                    onChange={e => setNewProdSellingPrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                    className="w-full text-xs font-mono rounded border border-zinc-700 bg-zinc-900 px-2 py-1 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
-                    required
+                    min="1"
+                    value={newProdMinAlert}
+                    onChange={e => setNewProdMinAlert(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full text-xs font-mono rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                   />
                 </div>
               </div>
@@ -484,13 +484,13 @@ export const InboundPurchases: React.FC = () => {
               </div>
               <select
                 value={productId}
-                onChange={e => handleProductSelect(Number(e.target.value))}
+                onChange={e => setProductId(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               >
                 {products.map(p => (
                   <option key={p.id} value={p.id} className="bg-zinc-900 text-zinc-100">
-                    {p.name}
+                    {p.name} / {p.sku}
                   </option>
                 ))}
               </select>
@@ -672,7 +672,8 @@ export const InboundPurchases: React.FC = () => {
             </button>
           </div>
         </form>
-      )}
+      )
+      }
 
       {/* 3. Filters & Search */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -804,6 +805,6 @@ export const InboundPurchases: React.FC = () => {
           </table>
         </div>
       </div>
-    </div>
+    </div >
   );
 };

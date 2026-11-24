@@ -1,3 +1,11 @@
+export const categoryList = [
+  "Electronics",
+  "Fashion",
+  "Perfumes",
+  "Home & Living",
+  "General"
+];
+
 export interface Warehouse {
   id: number;
   name: string;
@@ -7,9 +15,10 @@ export interface Warehouse {
 
 export interface Product {
   id: number;
+  categoryId: number;
   name: string;
-  unitCost: number;
-  sellingPrice: number;
+  sku: string;
+  minStockAlert: number;
   stock: Record<number, number>;
 }
 
@@ -41,7 +50,6 @@ export interface Sale {
   productId: number;
   warehouseId: number;
   quantity: number;
-  unitCost: number;
   sellingPrice: number;
   totalRevenue: number;
   saleDate: string;

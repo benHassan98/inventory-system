@@ -10,16 +10,18 @@ import {
   ShoppingBag,
   CircleDollarSign,
   Globe,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const Navigation: React.FC = () => {
   const {
+    lowStockProductsCount,
     currentTab,
     setCurrentTab,
     lang,
     setLang,
     currency,
-    t,
+    t
   } = useApp();
 
   const tabs: { id: NavigationTab; label: string; icon: React.ElementType }[] = [
@@ -50,7 +52,12 @@ export const Navigation: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-
+            {lowStockProductsCount > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-amber-950/60 text-amber-300 border border-amber-800/60 rounded-md">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{lowStockProductsCount} {t.lowStockWarning}</span>
+              </span>
+            )}
             {/* Language Switch */}
             <button
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}

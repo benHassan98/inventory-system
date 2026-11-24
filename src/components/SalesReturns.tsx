@@ -26,7 +26,7 @@ export const SalesReturns: React.FC = () => {
   const [productId, setProductId] = useState<number>(products.length ? products[0].id : -1);
   const [sourceWarehouse, setSourceWarehouse] = useState<number>(warehouses.length ? warehouses[0].id : -1);
   const [quantity, setQuantity] = useState<number>(1);
-  const [sellingPrice, setSellingPrice] = useState<number>(products.length ? products[0].sellingPrice : 100);
+  const [sellingPrice, setSellingPrice] = useState<number>(0);
   const [saleDate,] = useState<string>(new Date().toISOString().split('T')[0]);
   const [saleError, setSaleError] = useState<string>('');
 
@@ -34,7 +34,7 @@ export const SalesReturns: React.FC = () => {
   const [isReturnFormOpen, setIsReturnFormOpen] = useState(false);
   const [returnProductId, setReturnProductId] = useState<number>(products.length ? products[0].id : -1);
   const [returnQuantity, setReturnQuantity] = useState<number>(1);
-  const [refundAmount, setRefundAmount] = useState<number>(products.length ? products[0].sellingPrice : 100);
+  const [refundAmount, setRefundAmount] = useState<number>(0);
   const [returnWarehouse, setReturnWarehouse] = useState<number>(mainWarehouseId);
   const [returnCondition, setReturnCondition] = useState<'Sellable' | 'Damaged'>('Sellable');
   const [returnReason,] = useState<string>('Customer changed mind');
@@ -47,12 +47,6 @@ export const SalesReturns: React.FC = () => {
     ? getProductStock(selectedProduct, sourceWarehouse)
     : 0;
 
-  const handleProductChange = (id: number) => {
-    setProductId(id);
-    const prod = products.find(p => p.id === id);
-    if (prod) setSellingPrice(prod.sellingPrice);
-    setSaleError('');
-  };
 
   const handleSaleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +61,6 @@ export const SalesReturns: React.FC = () => {
       productId: selectedProduct.id,
       quantity: Number(quantity),
       sellingPrice: Number(sellingPrice),
-      unitCost: selectedProduct.unitCost,
       warehouseId: sourceWarehouse,
       saleDate,
     });
@@ -190,7 +183,7 @@ export const SalesReturns: React.FC = () => {
               <label className="block text-xs font-medium text-zinc-300 mb-1">{t.product}</label>
               <select
                 value={productId}
-                onChange={e => handleProductChange(Number(e.target.value))}
+                onChange={e => setProductId(Number(e.target.value))}
                 className="w-full text-xs rounded-md border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-zinc-100 focus:outline-hidden focus:ring-1 focus:ring-zinc-500"
                 required
               >

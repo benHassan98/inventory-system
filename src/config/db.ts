@@ -27,6 +27,9 @@ const defaultData: DefaultDataType = {
 
 const db = JSONFileSyncPreset("db.json", defaultData);
 
-export const dbWrite = async () => db.write();
+export const dbWrite = async (propName: string, prop: any) => {
+  db.data[propName] = prop;
+  db.write();
+}
 export const dbRead = async () => db.read();
 export const getData = async () => db.data;
